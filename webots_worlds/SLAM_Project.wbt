@@ -1,0 +1,161 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.25504850613075974 0.00357894676860427 0.9669216362562664 3.1144689118176894
+  position 1.7646305950281809 -0.006256112498447097 1.013785168050123
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+}
+Robot {
+  translation -1.6615930461703551e-07 -6.588638337759408e-10 -0.00020645662188235187
+  rotation -0.014472255639173943 -0.014463190132036677 0.9997906630629829 1.5702094342276645
+  children [
+    DEF body Pose {
+      translation 0 0 0.0415
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0 0 1
+            roughness 1
+            metalness 0
+          }
+          geometry Cylinder {
+            height 0.08
+            radius 0.045
+          }
+        }
+      ]
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 278.37863984766426
+        anchor 0.045 0 0.025
+      }
+      device [
+        DEF motor_1 RotationalMotor {
+          name "motor_1"
+        }
+        DEF ps_1 PositionSensor {
+          name "ps_1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.045 0 0.025
+        rotation 0.6338064550075296 0.4440923686640719 0.6333019387978553 2.3051411423069808
+        children [
+          DEF wheel Shape {
+            appearance PBRAppearance {
+              baseColor 1 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Cylinder {
+              height 0.01
+              radius 0.025
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics DEF wheel_physics Physics {
+        }
+        linearVelocity 2.429255243108661e-07 -1.897422511440959e-10 -4.726144216559918e-09
+        angularVelocity 6.3548046768446515e-09 9.810884576455742e-06 -1.1572337715095256e-09
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 278.3786493599738
+        anchor -0.045 0 0.025
+      }
+      device [
+        DEF motor_2 RotationalMotor {
+          name "motor_2"
+        }
+        DEF ps_2 PositionSensor {
+          name "ps_2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.045 0 0.025
+        rotation 0.6338077196975026 0.4440887615995316 0.6333032024811229 2.3051471712761797
+        children [
+          USE wheel
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics USE wheel_physics
+        linearVelocity 2.429778652225015e-07 -1.783906670254791e-10 -4.59682187971419e-09
+        angularVelocity 6.35502893827817e-09 9.810878673827016e-06 -1.1572330588400237e-09
+      }
+    }
+    Solid {
+      translation 0 -0.045 0.05
+      children [
+        DEF nose Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.015 0.005 0.01
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    Solid {
+      translation 0.015 -0.045 0.07
+      children [
+        DEF eye Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.005 0.005 0.005
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation -0.015 -0.045 0.07
+      children [
+        USE eye
+      ]
+      name "solid(4)"
+    }
+    Solid {
+      translation 0 0 0.082
+      children [
+        USE eye
+      ]
+      name "solid(5)"
+    }
+    Lidar {
+      translation 0 0 0.084
+      rotation 0 0 1 -1.5731853071795863
+      horizontalResolution 128
+      fieldOfView 1.57
+      numberOfLayers 1
+    }
+  ]
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "robot_controller"
+  linearVelocity 4.143029018672659e-07 -2.1237648321269198e-10 -2.1292311253546157e-09
+  angularVelocity 6.356329541779594e-09 9.810005893023319e-06 -1.1573624855225075e-09
+}
