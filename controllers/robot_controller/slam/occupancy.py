@@ -102,7 +102,26 @@ class OccupancyGrid:
         # Returns occupancy probabilities via logistic transform p = 1 / (1 + exp(-l)).
         return 1.0 / (1.0 + np.exp(-self.log_odds))
 
+def get_trinary_map(self) -> np.ndarray:
+        """
+        Converts the log-odds map into the {-1, 0, 1} format 
+        for the frontier planner (Bassel).
+        """
+        # Define thresholds. You can tune these.
+        occupied_thresh = self.spec.l_occ  # e.g., 0.85
+        free_thresh = self.spec.l_free    # e.g., -0.4
 
+        trinary_map = np.full(self.log_odds.shape, 0, dtype=np.int8)
+        
+        # Mark occupied cells as 1
+        trinary_map[self.log_odds > occupied_thresh] = 1
+        
+        # Mark free cells as -1
+        trinary_map[self.log_odds < free_thresh] = -1
+        
+        return trinary_map
+
+        
 def update_map(
     grid: OccupancyGrid,
     pose: Pose,
@@ -165,5 +184,6 @@ def update_map(
 
         if r < (scan.range_max - 1e-6):
             grid.mark_occupied(i1, j1)
+
 
 
