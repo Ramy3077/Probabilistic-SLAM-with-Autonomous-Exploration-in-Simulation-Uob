@@ -7,18 +7,308 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.25504850613075974 0.00357894676860427 0.9669216362562664 3.1144689118176894
-  position 1.7646305950281809 -0.006256112498447097 1.013785168050123
+  orientation -0.4819614130857977 -0.00528795279045095 0.876176485561914 3.1608242803172613
+  position 1.1433158382276805 0.1350866858201452 1.7195346245847942
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 RectangleArena {
+  floorSize 2 2
+}
+Solid {
+  translation 0.01632074896167244 0.2630153422313306 0.14873183713124952
+  rotation -0.1594197807350019 0.2028115894686613 -0.9661536071906988 0.021491829248253793
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Cone {
+        bottomRadius 0.05
+        height 0.1
+      }
+    }
+  ]
+  name "house(1)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 1.1125165040644316e-07 8.54669474461846e-08 -1.2756644802357961e-09
+  angularVelocity -2.4754859480385052e-08 3.4554776056816147e-08 -2.7288853073187483e-09
+}
+Solid {
+  translation 0.52 0.01 0.049607599999999995
+  rotation 0.39613622135962506 -0.5355174844305505 -0.7458532818162651 1.452883086505827e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(2)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity -4.0622673074745234e-17 -3.338646319601068e-17 4.279966349679119e-17
+  angularVelocity 5.329070518200764e-16 -7.993605777301118e-16 -5.641484963748395e-17
+}
+Solid {
+  translation -0.48 0.77 0.0496076
+  rotation -0.09946910850152327 -0.7261244920613151 -0.6803301540300923 1.0715026199551001e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(3)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 1.490319595793886e-17 2.7641649294979136e-17 -4.010599531649948e-17
+  angularVelocity -5.32907051820074e-16 -5.329070518200736e-16 1.3637662653420485e-17
+}
+Solid {
+  translation -0.49 -0.73 0.0496076
+  rotation -0.09946910850152327 -0.7261244920613151 -0.6803301540300923 1.0715026199551001e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(4)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 1.490319595793886e-17 2.7641649294979136e-17 -4.010599531649948e-17
+  angularVelocity -5.32907051820074e-16 -5.329070518200736e-16 1.3637662653420485e-17
+}
+Solid {
+  translation -0.5002187919780613 0.25052681909671576 0.14850386020759834
+  rotation 0.0681715593640158 -0.03841339180766129 -0.9969338241948206 0.14736123693350095
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Cone {
+        bottomRadius 0.05
+        height 0.1
+      }
+    }
+  ]
+  name "house(5)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity -1.612817455367115e-07 -2.7155198857813755e-07 9.379850268105242e-08
+  angularVelocity 1.1891152259467391e-06 -3.9772561734550414e-07 1.9584311831291533e-07
+}
+Solid {
+  translation -0.4789812855069026 0.2807853347945718 0.04921433380195711
+  rotation 0.2056316233493378 -0.14780984833312139 0.9674026484429613 0.023279099364144483
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(6)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 6.3971346748043375e-09 1.3060232114338773e-08 -2.017968900384912e-08
+  angularVelocity -2.612119925443577e-07 1.2794321765630293e-07 -1.3187726324452376e-10
+}
+Solid {
+  translation 8.536986323266567e-18 0.77 0.049607599999999995
+  rotation 0.1665535377027626 -0.24983030655399247 -0.9538578180241711 3.839536950129027e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(7)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 1.4628021639187102e-17 -5.298992401018766e-18 7.222967027133454e-17
+  angularVelocity 5.32907051820076e-16 -3.944304526105059e-31 1.1148416164321551e-16
+}
+Solid {
+  translation 1.3171904219117437e-07 -0.24991619206467144 0.04921512976260827
+  rotation -7.964965216190661e-17 0.9999996488129796 -0.0008380775127671614 3.1415926343827767
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(8)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity -5.909099873625081e-15 5.409928543817319e-10 -9.06877474583016e-13
+  angularVelocity -1.0819870312792954e-08 -1.167066443240197e-13 -5.132620564343887e-16
+}
+Solid {
+  translation 0.00012909432048239074 0.25010295005641814 0.04921492734081798
+  rotation -0.6234892199823411 0.7818319459394052 -2.957050718213476e-05 0.003302480462428226
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house(9)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 8.800227069762034e-10 6.760609648763137e-10 -3.6646531310521376e-12
+  angularVelocity -1.3521290614901382e-08 1.7600549121911763e-08 -6.642148335566244e-13
+}
+Solid {
+  translation 1.1270980116511146e-08 -0.23940494783724145 0.1487999252312428
+  rotation -0.9999999999434065 -1.0604706553584278e-05 -8.527914161891307e-07 0.002706165516978467
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Cone {
+        bottomRadius 0.05
+        height 0.1
+      }
+    }
+  ]
+  name "house(10)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity -7.23673056273511e-13 6.839264363836283e-08 -3.0324052887186354e-10
+  angularVelocity -1.9000239271072356e-08 -1.7452706597639597e-13 -6.605068054922163e-14
+}
+Solid {
+  translation 0.4998023160125455 -0.48958056738057704 0.04960760000000002
+  rotation -1.1810013262617822e-13 9.287360445173026e-14 -1 0.00021302109617065852
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "house"
+  boundingObject Shape {
+    geometry Box {
+      size 0.1 0.1 0.1
+    }
+  }
+  physics Physics {
+  }
+  linearVelocity 9.316930743195492e-18 1.0218502489206729e-17 1.55523888328312e-17
+  angularVelocity -8.289965286801968e-17 1.427968076575766e-16 -5.75903404551998e-17
 }
 Robot {
-  translation -1.6615930461703551e-07 -6.588638337759408e-10 -0.00020645662188235187
-  rotation -0.014472255639173943 -0.014463190132036677 0.9997906630629829 1.5702094342276645
+  translation -0.00644739 7.06535e-06 -0.00830525
+  rotation -0.014477077620372817 -0.014459406894272487 0.9997906479737844 1.5701732858070927
   children [
     DEF body Pose {
       translation 0 0 0.0415
@@ -38,7 +328,7 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 278.37863984766426
+        position 296.1096309703458
         anchor 0.045 0 0.025
       }
       device [
@@ -51,7 +341,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.045 0 0.025
-        rotation 0.6338064550075296 0.4440923686640719 0.6333019387978553 2.3051411423069808
+        rotation -0.36309649819384854 -0.8582142348301263 -0.3628074697884614 4.560866935126951
         children [
           DEF wheel Shape {
             appearance PBRAppearance {
@@ -68,13 +358,11 @@ Robot {
         boundingObject USE wheel
         physics DEF wheel_physics Physics {
         }
-        linearVelocity 2.429255243108661e-07 -1.897422511440959e-10 -4.726144216559918e-09
-        angularVelocity 6.3548046768446515e-09 9.810884576455742e-06 -1.1572337715095256e-09
       }
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 278.3786493599738
+        position 296.1096403226546
         anchor -0.045 0 0.025
       }
       device [
@@ -87,15 +375,13 @@ Robot {
       ]
       endPoint Solid {
         translation -0.045 0 0.025
-        rotation 0.6338077196975026 0.4440887615995316 0.6333032024811229 2.3051471712761797
+        rotation -0.36309998501167595 -0.8582112867266102 -0.36281095383074763 4.5608635393200565
         children [
           USE wheel
         ]
         name "solid(1)"
         boundingObject USE wheel
         physics USE wheel_physics
-        linearVelocity 2.429778652225015e-07 -1.783906670254791e-10 -4.59682187971419e-09
-        angularVelocity 6.35502893827817e-09 9.810878673827016e-06 -1.1572330588400237e-09
       }
     }
     Solid {
@@ -156,6 +442,4 @@ Robot {
   physics Physics {
   }
   controller "robot_controller"
-  linearVelocity 4.143029018672659e-07 -2.1237648321269198e-10 -2.1292311253546157e-09
-  angularVelocity 6.356329541779594e-09 9.810005893023319e-06 -1.1573624855225075e-09
 }
