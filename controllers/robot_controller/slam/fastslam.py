@@ -52,11 +52,55 @@ class FastSLAM:
         
 
     def measurement_update(self, scan: LaserScan) -> None:
-        """
-        Week 2 Task: Update particle weights based on how well 
-        the scan matches the map.
-        """
-        pass
+
+        if scan is None or len(scan.ranges) == 0:
+            return
+        
+        ranges = np.asarray(scan.ranges, dtype=float)
+        N_beams = len(ranges)
+        
+        # Subsample beams for efficiency
+        beam_indices = range(0, N_beams, max(1, self.config.beam_subsample))
+        
+        # Get probabilities from occupancy grid 
+        prob_map = self.grid.probabilities()
+        
+        for particle in self.particles.particles:
+            x_r, y_r, th_r = particle.pose
+            log_likelihood = 0.0
+            
+            for k in beam_indices:
+                r = ranges[k]
+                
+                # Skip invalid measurements
+                if not np.isfinite(r) or r < scan.range_min or r > scan.range_max:
+                    continue
+                
+                # Compute beam angle in world frame
+                beam_angle = th_r + (scan.angle_min + k * scan.angle_inc)
+                
+                # Expected endpoint in world coordinates
+                x_end = x_r + r * np.cos(beam_angle)
+                y_end = y_r + r * np.sin(beam_angle)
+                
+                # Convert to grid coordinates
+                i, j = self.grid.world_to_grid(x_end, y_end)
+                
+                # Compute likelihood based on occupancy probability
+                if self.grid.in_bounds(i, j):
+                    p_occ = prob_map[i, j]
+
+                    if r < (scan.range_max - 0.1):  # Hit an obstacle
+                        likelihood = 0.9 * p_occ + 0.1 * (1 - p_occ)
+                    else:  # Max range (no obstacle)
+                        likelihood = 0.1 * p_occ + 0.9 * (1 - p_occ)
+                else:
+                    likelihood = 0.01
+                
+                log_likelihood += np.log(max(likelihood, 1e-10))
+            
+            # Convert log likelihood back to weight
+            particle.weight = np.exp(log_likelihood)
 
     def maybe_resample(self) -> None:
         #Checks if particles are degenerating and resamples if needed.
