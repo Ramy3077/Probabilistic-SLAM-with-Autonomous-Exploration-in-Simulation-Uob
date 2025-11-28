@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Pytest
+.pytest_cache/
+
+# Logs and outputs
+*.log
+eval_logs/*.png
+eval_logs/*.csv
+
+# OS
+.DS_Store
+Thumbs.db
