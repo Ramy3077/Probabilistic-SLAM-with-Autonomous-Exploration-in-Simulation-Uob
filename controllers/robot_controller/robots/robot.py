@@ -12,6 +12,7 @@ INCR = 0.1
 class MyRobot:
     def __init__(self):
         self.robot = Robot()
+        self.timestep = TIMESTEP
         
         # Motor:
 
@@ -53,7 +54,7 @@ class MyRobot:
         self.x = 0.0
         self.y = 0.0
         self.theta = 0.0
-              
+        
         self.last_distances = [0.0, 0.0] 
         
         self.robot.step(TIMESTEP) 
@@ -62,6 +63,10 @@ class MyRobot:
         
         self.left_motor.setVelocity(s_l)
         self.right_motor.setVelocity(s_r)
+
+    def set_wheel_speeds(self, s_l, s_r):
+        """Alias for set_wheel_speed to maintain compatibility with SLAM scripts"""
+        self.set_wheel_speed(s_l, s_r)
     
     
     def get_wheel_distances(self):
@@ -110,12 +115,15 @@ class MyRobot:
         
         return ranges, angle_min, angle_max, angle_inc
 
-    def save_sensor_data(self, dt):
-        
+    def create_sensor_packet(self, dt):
+        """
+        Creates a sensor packet dictionary for SLAM.
+        Similar to save_sensor_data but returns the dict instead of saving to file.
+        """
         v_l, v_r = self.get_wheel_velocities(dt)
         ranges, angle_min, angle_max, angle_inc = self.read_lidar()
         
-        sensor_data = {
+        sensor_packet = {
             "odometry": {
                 "dt": dt,
                 "v_l": v_l,
@@ -127,8 +135,12 @@ class MyRobot:
                 "angle_max": angle_max,
                 "angle_increment": angle_inc
             }
-            
         }
+        return sensor_packet
+
+    def save_sensor_data(self, dt):
+        
+        sensor_data = self.create_sensor_packet(dt)
 
         # saves data in a json file:
         

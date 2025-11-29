@@ -29,8 +29,9 @@ def sample_motion_simple(
     omega = wheel_radius * (v_r - v_l) / axle_length  # Angular 
     
     # Add noise to control inputs 
-    noise_v = rng.normal(0, 0.02)  
-    noise_omega = rng.normal(0, 0.05)  
+    # Increased noise to account for slip during sharp turns
+    noise_v = rng.normal(0, 0.05)  
+    noise_omega = rng.normal(0, 0.2)  
     
     v_noisy = v + noise_v
     omega_noisy = omega + noise_omega

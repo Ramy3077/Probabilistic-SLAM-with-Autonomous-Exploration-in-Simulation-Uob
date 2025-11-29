@@ -1,11 +1,24 @@
 import math 
-from robots.robot import MyRobot, Movement, OdomTest, Waypoint
+import sys
+from pathlib import Path
 
+# Add current directory to path so we can import from submodules
+sys.path.insert(0, str(Path(__file__).parent))
+
+from robots.robot import MyRobot, Movement, OdomTest, Waypoint
+from scripts.live_slam_random import main as slam_main
 
 TIMESTEP = 64
 
-        
 if __name__ == "__main__":
+    # === SLAM MODE (Default) ===
+    print("🚀 Starting live SLAM with random exploration...")
+    # This runs the SLAM loop which handles its own robot instance and stepping
+    slam_main()
+
+    # === WAYPOINT MODE (Commented out) ===
+    # To use this, comment out slam_main() above and uncomment below
+    """
     my_robot = MyRobot()
     movement = Movement(my_robot)
     odom_test = OdomTest(my_robot)
@@ -48,3 +61,4 @@ if __name__ == "__main__":
         # movement.explore_random()
         # print("LIDAR front ranges:", min(my_robot.lidar.getRangeImage()))
         # my_robot.save_sensor_data(dt)
+    """

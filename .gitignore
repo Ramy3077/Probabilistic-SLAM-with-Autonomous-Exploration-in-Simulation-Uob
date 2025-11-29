@@ -24,7 +24,12 @@ ENV/
 *.log
 eval_logs/*.png
 eval_logs/*.csv
+.png
 
 # OS
 .DS_Store
 Thumbs.db
+# Project specific
+Timeline.md
+controllers/robot_controller/eval_logs/
+controllers/robot_controller/data.json
