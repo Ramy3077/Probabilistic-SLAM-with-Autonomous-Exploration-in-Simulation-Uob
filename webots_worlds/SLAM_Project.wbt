@@ -5,22 +5,30 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Wall.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/bedroom/protos/Bed.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/cabinet/protos/Cabinet.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Desk.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/OfficeChair.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/Chair.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/bathroom/protos/Bathtube.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/bathroom/protos/Toilet.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/fridge/protos/Fridge.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Window.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Door.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Wall.proto"
 
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.5530016173955593 -0.013673945190974042 0.8330679650429547 3.1827901053442997
-  position 3.7696931204740776 -0.3586084400534842 8.489520700733099
+  orientation -0.6124344867776375 0.005801176575540069 0.7905000605665703 3.1266218085101327
+  position 5.956207594415509 0.5683597955656099 20.251395641523487
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 RectangleArena {
-  floorSize 4 4
+  floorSize 10 10
   floorAppearance Parquetry {
     type "light strip"
   }
@@ -29,11 +37,10 @@ RectangleArena {
   }
 }
 Robot {
-  translation -1.27798 0.00112391 -0.0473533
-  rotation -0.014471494365744884 -0.014465404294290263 0.9997906420493368 1.5701328244136155
+  rotation 0 0 1 1.5700000001102514
   children [
     DEF body Pose {
-      translation 0 0 0.0415
+      translation 0 0 0.225
       children [
         Shape {
           appearance PBRAppearance {
@@ -42,16 +49,16 @@ Robot {
             metalness 0
           }
           geometry Cylinder {
-            height 0.08
-            radius 0.045
+            height 0.4
+            radius 0.225
           }
         }
       ]
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 310.41883281781753
-        anchor 0.045 0 0.025
+        position 319.9588480122262
+        anchor 0.225 0 0.125
       }
       device [
         DEF motor_1 RotationalMotor {
@@ -62,9 +69,19 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.045 0 0.025
-        rotation -0.6911272310233216 -0.213181700843807 -0.6905770869087517 3.5619926373954542
+        translation 0.225 0 0.125
+        rotation 0 1 0 1.57
         children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
           DEF wheel Shape {
             appearance PBRAppearance {
               baseColor 1 0 0
@@ -72,8 +89,8 @@ Robot {
               metalness 0
             }
             geometry Cylinder {
-              height 0.01
-              radius 0.025
+              height 0.05
+              radius 0.125
             }
           }
         ]
@@ -84,8 +101,8 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 310.4188420066952
-        anchor -0.045 0 0.025
+        position 319.97494226610377
+        anchor -0.225 0 0.125
       }
       device [
         DEF motor_2 RotationalMotor {
@@ -96,9 +113,19 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.045 0 0.025
-        rotation -0.6911277430357069 -0.21317838360771524 -0.6905775985135716 3.561986286709542
+        translation -0.225 0 0.125
+        rotation 0 1 0 1.57
         children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
           USE wheel
         ]
         name "solid(1)"
@@ -107,7 +134,8 @@ Robot {
       }
     }
     Solid {
-      translation 0 -0.045 0.05
+      translation -2.03924e-08 -0.23 0.21
+      rotation 0 0 1 -1.5707953071795862
       children [
         DEF nose Shape {
           appearance PBRAppearance {
@@ -116,14 +144,14 @@ Robot {
             metalness 0
           }
           geometry Box {
-            size 0.015 0.005 0.01
+            size 0.015 0.075 0.05
           }
         }
       ]
       name "solid(2)"
     }
     Solid {
-      translation 0.015 -0.045 0.07
+      translation 0.025 -0.23 0.28
       children [
         DEF eye Shape {
           appearance PBRAppearance {
@@ -132,28 +160,42 @@ Robot {
             metalness 0
           }
           geometry Box {
-            size 0.005 0.005 0.005
+            size 0.025 0.025 0.025
           }
         }
       ]
       name "solid(3)"
     }
     Solid {
-      translation -0.015 -0.045 0.07
+      translation -0.025 -0.23 0.28
       children [
         USE eye
       ]
       name "solid(4)"
     }
     Solid {
-      translation 0 0 0.082
+      translation 0 0 0.44
       children [
         USE eye
       ]
       name "solid(5)"
     }
+    Solid {
+      translation -0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(7)"
+    }
+    Solid {
+      translation 0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(6)"
+    }
     Lidar {
-      translation 0 0 0.084
+      translation 0 0 0.45
       rotation 0 0 1 -1.5731853071795863
       horizontalResolution 128
       fieldOfView 1.57
@@ -165,177 +207,191 @@ Robot {
   }
   controller "robot_controller"
 }
-Wall {
-  translation 2 -1 0
-  size 0.1 2 1
+Bed {
+  translation 4.01 -3.82 0
+  rotation 0 0 1 1.5708
 }
-Wall {
-  translation 0 -0.5 0
-  name "wall(9)"
-  size 0.1 3 1
+Bed {
+  translation 3.81 4.02 0
+  rotation 0 0 1 3.14159
+  name "bed(1)"
 }
-Wall {
-  translation 2 1.5 0
-  name "wall(1)"
-  size 0.1 1 1
+Cabinet {
+  translation -0.05 -4.27 0
 }
-Wall {
-  translation -2 1.5 0
-  name "wall(8)"
-  size 0.1 1 1
+Cabinet {
+  translation 4.9 1.46 0
+  rotation 0 0 1 3.14159
+  name "cabinet(1)"
 }
-Wall {
-  translation -2 -1.5 0
-  name "wall(10)"
-  size 0.1 1 1
+Cabinet {
+  translation -0.07 -3.43 0
+  name "cabinet(2)"
 }
-Wall {
-  translation 0 2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(2)"
-  size 0.1 0.5 1
+Desk {
+  translation 0.589998 4.56 0
+  rotation 0 0 1 -1.5707953071795862
 }
-Wall {
-  translation 1.88894e-05 -2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(6)"
-  size 0.1 0.5 1
+Table {
+  translation -2.72 -2.51 0
 }
-Wall {
-  translation 1.6 2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(3)"
-  size 0.1 0.75 1
+OfficeChair {
+  translation 0.68 4.04 -0.00050478
+  rotation 0.0006972817409901603 -0.0007075262097696836 0.9999995066022964 1.570800495076824
 }
-Wall {
-  translation 1.5 0 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(11)"
-  size 0.1 1 1
+Chair {
+  translation -3.4 -2.86 0
 }
-Wall {
-  translation 1.6 -2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(7)"
-  size 0.1 0.75 1
+Chair {
+  translation -3.32 -2.13 0
+  name "chair(1)"
 }
-Wall {
-  translation -1.6 2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(4)"
-  size 0.1 0.75 1
+Chair {
+  translation -1.95 -2.9 0
+  rotation 0 0 1 3.14159
+  name "chair(2)"
 }
-Wall {
-  translation -1.6 -2 0
-  rotation 0 0 1 1.5707996938995747
-  name "wall(5)"
-  size 0.1 0.75 1
+Chair {
+  translation -1.97 -2.01 0
+  rotation 0 0 1 3.14159
+  name "chair(3)"
+}
+Bathtube {
+  translation -4.38 3.95 0
+}
+Toilet {
+  translation -2.82 4.51 0
+  rotation 0 0 1 -1.5707953071795862
+}
+Fridge {
+  translation -4.61 -4.6 0
 }
 Window {
-  translation -0.75 2 0
-  rotation 0 0 1 1.5707996938995747
-  size 0.1 1 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
+  translation -5 -3 0
+  size 0.1 2 2.5
 }
 Window {
-  translation -0.749988 -2 0
-  rotation 0 0 1 1.5707996938995747
-  name "window(3)"
-  size 0.1 1 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
-}
-Window {
-  translation 0.75 2 0
-  rotation 0 0 1 1.5707996938995747
+  translation -3.5 5 0
+  rotation 0 0 1 1.5708
   name "window(2)"
-  size 0.1 1 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
+  size 0.1 1 2.5
 }
 Window {
-  translation 0.750014 -2 0
-  rotation 0 0 1 1.5707996938995747
-  name "window(4)"
-  size 0.1 1 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
+  translation -3.5 -5 0
+  rotation 0 0 1 1.5708
+  name "window(3)"
+  size 0.1 1 2.5
 }
 Window {
-  translation 2 0.25 0
+  translation 5 -3 0
   name "window(1)"
-  size 0.1 0.5 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
+  size 0.1 2 2.5
 }
 Window {
-  translation -2 0 0
-  name "window(5)"
-  size 0.1 2 1
-  bottomWallHeight 0.3
-  windowHeight 0.5
-  frameSize 0.01 0.02 0.05
-  windowSillSize 0.1 0.03
+  translation 5 3 0
+  name "window(4)"
+  size 0.1 2 2.5
 }
-Door {
-  hidden translation_4 0.0010173140033830352 4.1688474393952735e-06 -3.3306690738754696e-16
-  hidden rotation_4 0 0 -1 7.066879741935132e-05
-  translation 2 0.75 0
-  size 0.1 0.5 1
-  position -7.066880029448283e-05
-  frameSize 0.01 0.01 0.01
+Wall {
+  translation -5 -4.5 0
+  size 0.1 1 2.5
 }
-Solid {
-  translation 0.8 -1.15 0.049607554431792274
-  rotation 0.5404048380776905 -0.6755060475971333 -0.5016514633108573 6.311203918492863e-17
-  children [
-    Solid {
-      translation 0.7 -0.04 -8.44708e-07
-      rotation 2.3464099999870814e-06 2.3464099999870814e-06 0.9999999999944944 1.5708
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColor 1 0 0
-            metalness 0
-          }
-          geometry Box {
-            size 0.9 0.6 0.4
-          }
-        }
-      ]
-    }
-    Solid {
-      translation 0.7 -0.55 0
-      rotation 0 0 1 -1.5707953071795862
-      children [
-        Shape {
-          appearance PBRAppearance {
-            metalness 0
-          }
-          geometry Box {
-            size 0.1 0.6 0.4
-          }
-        }
-      ]
-      name "solid(1)"
-    }
-  ]
-  boundingObject Box {
-    size 0.1 0.1 0.1
-  }
-  physics Physics {
-  }
-  linearVelocity 9.48024474338869e-18 -8.656721772312354e-17 3.5687503744668833e-07
-  angularVelocity 1.5987211554602245e-15 -3.944304526105059e-31 -1.7245939569365588e-16
+Wall {
+  translation 5 -4.5 0
+  name "wall(2)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation 5 1.5 0
+  name "wall(10)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation -5 -1.5 0
+  name "wall(1)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation -5 1.94 0
+  name "wall(8)"
+  size 0.1 6 2.5
+}
+Wall {
+  translation 3.49 -1.2 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(12)"
+  size 0.1 3 2.5
+}
+Wall {
+  translation 3.49 1 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(16)"
+  size 0.1 3 2.5
+}
+Wall {
+  translation -1.55 1.01 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(15)"
+  size 0.1 3 2.5
+}
+Wall {
+  translation 1.44 4.99 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(17)"
+  size 0.1 7 2.5
+}
+Wall {
+  translation 1.43 -4.99 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(13)"
+  size 0.1 7 2.5
+}
+Wall {
+  translation 4.98 0 0
+  name "wall(11)"
+  size 0.1 2 2.5
+}
+Wall {
+  translation -0.1 -3.08 0
+  name "wall(14)"
+  size 0.1 4 2.5
+}
+Wall {
+  translation -0.1 2.91 0
+  name "wall(18)"
+  size 0.1 4 2.5
+}
+Wall {
+  translation -4.5 5 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(4)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation -4.5 -5 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(6)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation -2.5 -5 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(5)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation -2.5 5 0
+  rotation 0 0 1 -1.5707953071795862
+  name "wall(7)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation 5 -1.5 0
+  name "wall(3)"
+  size 0.1 1 2.5
+}
+Wall {
+  translation 5 4.5 0
+  name "wall(9)"
+  size 0.1 1 2.5
 }
