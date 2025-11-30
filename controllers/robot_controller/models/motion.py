@@ -21,12 +21,13 @@ def sample_motion_simple(
     v_l, v_r = control
     
     # Robot parameters 
-    wheel_radius = 0.025  # meters
-    axle_length = 0.09    # meters
+    # wheel_radius = 0.025  # REMOVED: Inputs are already linear velocity (m/s)
+    axle_length = 0.45    # Corrected from 0.09 to match robot.py
     
     # Convert wheel velocities to linear and angular velocity
-    v = wheel_radius * (v_l + v_r) / 2.0  # Linear 
-    omega = wheel_radius * (v_r - v_l) / axle_length  # Angular 
+    # Inputs v_l, v_r are already in m/s
+    v = (v_l + v_r) / 2.0  # Linear velocity
+    omega = (v_r - v_l) / axle_length  # Angular velocity 
     
     # Add noise to control inputs 
     # Increased noise to account for slip during sharp turns

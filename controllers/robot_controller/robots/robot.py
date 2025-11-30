@@ -77,6 +77,9 @@ class MyRobot:
         # Equation: S = theta * r:
         distance_val[0] = (ps_values[0] - self.left_offset) * WHEEL_RADIUS
         distance_val[1] = (ps_values[1] - self.right_offset) * WHEEL_RADIUS
+        
+        # DEBUG ODOMETRY
+        # print(f"DEBUG ODOM: PS=[{ps_values[0]:.2f}, {ps_values[1]:.2f}] Off=[{self.left_offset:.2f}, {self.right_offset:.2f}] Dist=[{distance_val[0]:.2f}, {distance_val[1]:.2f}]")
 
         return distance_val[0], distance_val[1]
 
