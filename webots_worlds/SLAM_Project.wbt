@@ -200,6 +200,7 @@ Robot {
       horizontalResolution 128
       fieldOfView 1.57
       numberOfLayers 1
+      maxRange 2
     }
   ]
   boundingObject USE body
