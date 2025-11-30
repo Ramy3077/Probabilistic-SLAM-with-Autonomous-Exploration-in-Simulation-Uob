@@ -1,18 +1,15 @@
-# Visualization utilities for SLAM debugging and validation
+# Visualization utilities for SLAM debugging and validation using PIL
 
 from pathlib import Path
 from typing import Optional, Tuple
 import numpy as np
 
 try:
-    import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend for server environments
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Circle, Wedge
-    MATPLOTLIB_AVAILABLE = True
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
 except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-    print("Warning: matplotlib not available, visualization disabled")
+    PIL_AVAILABLE = False
+    print("Warning: Pillow not available, visualization disabled")
 
 from .occupancy import OccupancyGrid, LaserScan
 from .particles import ParticleSet, Pose
@@ -27,19 +24,18 @@ def plot_map(
     output_path: Optional[str] = None,
     show_particles: bool = True,
     show_scan: bool = True,
+    scale: int = 10,  # pixels per grid cell
 ) -> None:
     # Visualize occupancy grid with robot pose, particles, and laser scan
-    if not MATPLOTLIB_AVAILABLE:
-        print("Matplotlib not available, skipping visualization")
+    if not PIL_AVAILABLE:
+        print("Pillow not available, skipping visualization")
         return
     
-    fig, ax = plt.subplots(figsize=(10, 10))
-    
-    # Get probability map for visualization
+    # Get probability map
     prob_map = grid.probabilities()
+    height, width = prob_map.shape
     
     # Create RGB image: unknown=gray, free=white, occupied=black
-    height, width = prob_map.shape
     img = np.zeros((height, width, 3), dtype=np.uint8)
     
     # Unknown cells (near 0.5 probability) - gray
@@ -54,71 +50,105 @@ def plot_map(
     occupied_mask = prob_map > 0.6
     img[occupied_mask] = [0, 0, 0]
     
-    # Display map (flip vertically for correct orientation)
-    extent = [
-        grid.spec.origin_x,
-        grid.spec.origin_x + grid.spec.width * grid.spec.resolution,
-        grid.spec.origin_y,
-        grid.spec.origin_y + grid.spec.height * grid.spec.resolution,
-    ]
-    ax.imshow(np.flipud(img), extent=extent, origin='lower', interpolation='nearest')
+    # Flip vertically for correct orientation (origin at bottom-left)
+    img = np.flipud(img)
+    
+    # Create PIL image and scale up
+    pil_img = Image.fromarray(img, mode='RGB')
+    scaled_width = width * scale
+    scaled_height = height * scale
+    pil_img = pil_img.resize((scaled_width, scaled_height), Image.NEAREST)
+    
+    draw = ImageDraw.Draw(pil_img)
+    
+    # Helper function to convert world coords to image coords
+    def world_to_image(x: float, y: float) -> Tuple[int, int]:
+        i, j = grid.world_to_grid(x, y)
+        # Flip i for image coordinates (top-left origin)
+        img_x = j * scale
+        img_y = (height - 1 - i) * scale
+        return int(img_x), int(img_y)
     
     # Draw particles
     if show_particles and particles is not None:
         poses, weights = particles.as_arrays()
-        # Scale particle sizes by weight
-        sizes = 20 + 100 * (weights / np.max(weights)) if len(weights) > 0 else 20
-        ax.scatter(poses[:, 0], poses[:, 1], s=sizes, c='blue', alpha=0.3, label='Particles')
+        max_weight = np.max(weights) if len(weights) > 0 else 1.0
+        
+        for p_pose, weight in zip(poses, weights):
+            px, py = world_to_image(p_pose[0], p_pose[1])
+            # Radius based on weight
+            radius = int(2 + 6 * (weight / max_weight))
+            draw.ellipse(
+                [(px - radius, py - radius), (px + radius, py + radius)],
+                fill=(100, 100, 255, 128),
+                outline=(0, 0, 255)
+            )
+    
+    # Draw laser scan
+    if show_scan and scan is not None and pose is not None:
+        x_r, y_r, theta = pose
+        ranges = np.asarray(scan.ranges, dtype=float)
+        N = len(ranges)
+        
+        for k in range(0, N, max(1, 10)):  # Subsample beams
+            r = ranges[k]
+            if np.isfinite(r) and scan.range_min < r < scan.range_max:
+                beam_angle = theta + (scan.angle_min + k * scan.angle_inc)
+                x_end = x_r + r * np.cos(beam_angle)
+                y_end = y_r + r * np.sin(beam_angle)
+                
+                px_start, py_start = world_to_image(x_r, y_r)
+                px_end, py_end = world_to_image(x_end, y_end)
+                
+                # Draw beam
+                draw.line([(px_start, py_start), (px_end, py_end)], 
+                         fill=(0, 255, 0, 50), width=1)
+                # Draw endpoint
+                draw.ellipse([(px_end - 2, py_end - 2), (px_end + 2, py_end + 2)],
+                            fill=(0, 255, 0))
     
     # Draw robot pose
     if pose is not None:
         x, y, theta = pose
-        # Draw robot as a circle with orientation wedge
-        robot_circle = Circle((x, y), 0.1, color='red', fill=False, linewidth=2, label='Robot')
-        ax.add_patch(robot_circle)
+        px, py = world_to_image(x, y)
         
-        # Orientation indicator
-        arrow_len = 0.15
-        ax.arrow(x, y, arrow_len * np.cos(theta), arrow_len * np.sin(theta),
-                head_width=0.05, head_length=0.05, fc='red', ec='red')
+        # Robot circle (radius ~10cm in world = ~2 cells)
+        robot_radius = int(2 * scale)
+        draw.ellipse(
+            [(px - robot_radius, py - robot_radius), 
+             (px + robot_radius, py + robot_radius)],
+            outline=(255, 0, 0),
+            width=3
+        )
         
-        # Draw laser scan if provided
-        if show_scan and scan is not None:
-            ranges = np.asarray(scan.ranges, dtype=float)
-            N = len(ranges)
-            
-            for k in range(0, N, max(1, 10)):  # Subsample for clarity
-                r = ranges[k]
-                if np.isfinite(r) and scan.range_min < r < scan.range_max:
-                    beam_angle = theta + (scan.angle_min + k * scan.angle_inc)
-                    x_end = x + r * np.cos(beam_angle)
-                    y_end = y + r * np.sin(beam_angle)
-                    ax.plot([x, x_end], [y, y_end], 'g-', alpha=0.2, linewidth=0.5)
-                    ax.plot(x_end, y_end, 'go', markersize=2)
+        # Orientation arrow
+        arrow_len = int(3 * scale)
+        px_end = px + arrow_len * np.cos(theta)
+        py_end = py - arrow_len * np.sin(theta)  # Negative because image y is flipped
+        draw.line([(px, py), (int(px_end), int(py_end))], 
+                 fill=(255, 0, 0), width=3)
+        
+        # Arrowhead
+        draw.ellipse([(int(px_end) - 3, int(py_end) - 3), 
+                     (int(px_end) + 3, int(py_end) + 3)],
+                    fill=(255, 0, 0))
     
-    ax.set_xlabel('X (meters)')
-    ax.set_ylabel('Y (meters)')
-    ax.set_title(title)
-    ax.set_aspect('equal')
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    
+    # Save image
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        pil_img.save(output_path)
         print(f"Saved visualization to {output_path}")
-    else:
-        plt.show()
     
-    plt.close(fig)
+    return pil_img
 
 
 def save_map_image(
     grid: OccupancyGrid,
     pose: Pose,
     output_path: str,
-    title: str = "Occupancy Map"
+    title: str = "Occupancy Map",
+    scale: int = 10,
 ) -> None:
     # Save map and robot pose to PNG file
     plot_map(grid, pose=pose, particles=None, scan=None, 
-             title=title, output_path=output_path, show_particles=False, show_scan=False)
+             output_path=output_path, show_particles=False, show_scan=False, scale=scale)
