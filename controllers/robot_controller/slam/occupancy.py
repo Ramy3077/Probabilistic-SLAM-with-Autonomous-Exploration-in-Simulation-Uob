@@ -155,6 +155,25 @@ def update_map(
     N = ranges.shape[0]
     if N == 0:
         return
+    
+    # === CRITICAL: Mark robot footprint FIRST (always, even if scan is bad) ===
+    # The robot physically occupied this space, so mark it as explored regardless of LiDAR quality
+    robot_radius_cells = int(np.ceil(0.5 / grid.spec.resolution))  # 0.5m radius in cells
+    i_robot, j_robot = grid.world_to_grid(x_r, y_r)
+    
+    for di in range(-robot_radius_cells, robot_radius_cells + 1):
+        for dj in range(-robot_radius_cells, robot_radius_cells + 1):
+            # Check if within circular footprint
+            if di*di + dj*dj <= robot_radius_cells*robot_radius_cells:
+                grid.mark_free(i_robot + di, j_robot + dj)
+    
+    # === SCAN VALIDATION: Skip ray tracing for corrupt scans (but footprint already marked) ===
+    valid_beam_count = sum(1 for r in ranges if np.isfinite(r) and scan.range_min <= r <= scan.range_max)
+    valid_ratio = valid_beam_count / N
+    
+    if valid_ratio < 0.2:  # Less than 20% valid beams
+        # print(f"  [update_map] Skipping ray tracing ({valid_ratio*100:.0f}% valid beams) but footprint marked")
+        return  # Skip ray tracing, but footprint is already marked above
 
     k_indices = range(0, N, max(1, int(beam_subsample)))
     res = grid.spec.resolution

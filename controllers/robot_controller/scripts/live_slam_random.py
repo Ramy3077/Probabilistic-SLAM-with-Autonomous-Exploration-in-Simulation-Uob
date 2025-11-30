@@ -26,11 +26,11 @@ class RandomExplorationSLAM:
         # Create occupancy grid matching actual arena size (4m x 4m arena)
         # Using 5m x 5m grid to have some margin around walls
         grid_spec = GridSpec(
-            resolution=0.05,     # 5cm resolution (good detail for 4m arena)
-            width=100,           # 100 cells × 0.05m = 5m
-            height=100,          # 100 cells × 0.05m = 5m
-            origin_x=-2.5,       # Center the 5m grid
-            origin_y=-2.5,
+            resolution=0.05,     # 5cm resolution
+            width=300,           # 300 cells × 0.05m = 15m (covers 10x10m arena with margin)
+            height=300,          # 300 cells × 0.05m = 15m
+            origin_x=-7.5,       # Center the 15m grid
+            origin_y=-7.5,
             l_occ=0.85,
             l_free=-0.4,
         )
@@ -39,8 +39,8 @@ class RandomExplorationSLAM:
         # Initialize FastSLAM with fewer particles for large environment (faster)
         init_pose = np.array([0.0, 0.0, 0.0], dtype=float)
         config = FastSLAMConfig(
-            num_particles=30,      # Reduced for speed in large environment
-            beam_subsample=10,     # More aggressive subsampling
+            num_particles=50,      # Increased from 30 for robustness in degenerate scenarios
+            beam_subsample=3,      # Reduced from 10 - improves coverage speed
             resample_threshold_ratio=0.5,
         )
         
@@ -52,10 +52,10 @@ class RandomExplorationSLAM:
         )
         
         # Exploration state - FASTER movement
-        self.step_count = 0
-        self.last_control = (6.0, 6.0)  # Default forward at full speed
-        self.direction_change_interval = 100  # Change direction RARELY (was 50)
-        self.obstacle_distance_threshold = 0.5  # 50cm safety
+        # Exploration Parameters
+        self.step_count = 0  # Re-added missing initialization
+        self.obstacle_distance_threshold = 0.8  # Increased to 0.8m to avoid getting too close
+        self.stagnation_check_interval = 20  # Check for stuck every 20 steps (was 50)
         
         # Diagonal backup state (for escaping tight spaces)
         self.diagonal_backup_active = False
@@ -66,6 +66,23 @@ class RandomExplorationSLAM:
         self.turning_90 = False
         self.turn_steps = 0
         self.turn_direction = None
+        
+        # Force-escape state (when wedged into geometry)
+        self.force_escape_active = False
+        self.force_escape_steps = 0
+        self.force_escape_phase = 0  # 0=back, 1=forward, 2=turn
+        
+        # Stuck detection
+        self.blind_steps = 0
+        self.last_pose_check = None
+        self.last_pose_step = 0
+        self.stuck_check_interval = 20
+
+        # === NEW STATE MACHINE VARIABLES ===
+        self.state = 'FORWARD'  # States: FORWARD, TURN_RIGHT, BACKUP, TURN_LEFT
+        self.state_steps = 0
+        self.last_stagnation_pose = None
+
         
         # Output directory
         self.output_dir = Path("eval_logs/live_slam")
@@ -106,118 +123,150 @@ class RandomExplorationSLAM:
                 min_distance = min(valid_beams)
                 
                 # Debug output
+                if min_distance < self.obstacle_distance_threshold + 0.2:
+                    print(f"  [SENSORS] Front Min: {min_distance:.2f}m (Thresh: {self.obstacle_distance_threshold}m)")
+                
                 if min_distance < self.obstacle_distance_threshold:
-                    print(f"⚠️  OBSTACLE DETECTED! Min distance: {min_distance:.2f}m (threshold: {self.obstacle_distance_threshold}m)")
+                    print(f"⚠️  OBSTACLE DETECTED! Min distance: {min_distance:.2f}m < {self.obstacle_distance_threshold}m")
                 
                 return min_distance < self.obstacle_distance_threshold
         
         return False
     
-    def random_control(self, lidar_ranges, current_pose):
-        # Generate random exploration control with obstacle avoidance
+    def check_obstacle_behind(self, lidar_ranges):
+        """Check if there's an obstacle behind the robot (for safe backing up)"""
+        if len(lidar_ranges) == 0:
+            return False
         
-        # Execute 90° turn if active
-        if self.turning_90:
-            self.turn_steps += 1
-            
-            if self.turn_steps >= 7:  # 7 steps for ~90° (8 was 110-120°)
-                # Done turning
-                self.turning_90 = False
-                self.turn_steps = 0
-                self.turn_direction = None
-                # Resume forward
-                return (6.0, 6.0)
-            else:
-                # Continue turning - reverse one wheel for sharp turn
-                if self.turn_direction == 'left':
-                    return (-6.0, 6.0)  # Left wheel back, right wheel forward (sharp left)
-                else:
-                    return (6.0, -6.0)  # Left wheel forward, right wheel back (sharp right)
+        num_beams = len(lidar_ranges)
+        # Rear beams are at the edges (first and last ~15% of beams)
+        rear_sector = num_beams // 6
         
-        # Continue diagonal backup if active
-        if self.diagonal_backup_active:
-            self.diagonal_backup_steps += 1
-            
-            # Check if we've cleared the obstacle zone
-            valid_ranges = [r for r in lidar_ranges if np.isfinite(r) and r > 0.01]
-            min_dist = min(valid_ranges) if valid_ranges else 1.0
-            
-            if min_dist > self.obstacle_distance_threshold + 0.1:  # Cleared threshold + margin
-                # Done backing up - initiate 90° turn
-                print(f"✅ Cleared obstacle zone ({min_dist:.2f}m), executing 90° turn")
-                self.diagonal_backup_active = False
-                self.diagonal_backup_steps = 0
-                
-                # Start 90° turn
-                self.turning_90 = True
-                self.turn_steps = 0
-                self.turn_direction = self.diagonal_backup_direction
-                
-                if self.turn_direction == 'left':
-                    return (-6.0, 6.0)  # Sharp left
-                else:
-                    return (6.0, -6.0)  # Sharp right
-            elif self.diagonal_backup_steps >= 10:  # Shorter timeout (was 20) - limits backup distance
-                # Give up backing - do the turn anyway
-                print(f"⚠️  Backup timeout, doing 90° turn anyway")
-                self.diagonal_backup_active = False
-                self.diagonal_backup_steps = 0
-                
-                # Start 90° turn anyway
-                self.turning_90 = True
-                self.turn_steps = 0
-                self.turn_direction = self.diagonal_backup_direction
-                
-                if self.turn_direction == 'left':
-                    return (-6.0, 6.0)  # Sharp left
-                else:
-                    return (6.0, -6.0)  # Sharp right
-            else:
-                # Continue backing straight up (not diagonal, more effective)
-                return (-5.0, -5.0)
+        # Check left-rear and right-rear beams
+        left_rear = lidar_ranges[:rear_sector]
+        right_rear = lidar_ranges[-rear_sector:]
+        rear_beams = list(left_rear) + list(right_rear)
         
-        # Obstacle avoidance takes priority
-        obstacle_ahead = self.check_obstacle_ahead(lidar_ranges)
-        
-        if obstacle_ahead:
-            # Check distance to obstacle
-            valid_ranges = [r for r in lidar_ranges if np.isfinite(r) and r > 0.01]
-            min_dist = min(valid_ranges) if valid_ranges else 1.0
+        if len(rear_beams) > 0:
+            valid_beams = [r for r in rear_beams if np.isfinite(r) and r > 0.01]
             
-            if min_dist < self.obstacle_distance_threshold:
-                # Too close! Initiate backup sequence
-                if not self.diagonal_backup_active:
-                    self.diagonal_backup_active = True
-                    self.diagonal_backup_steps = 0
-                    self.diagonal_backup_direction = np.random.choice(['left', 'right'])
-                    print(f"🔙 OBSTACLE at {min_dist:.2f}m! Backing up to clear threshold...")
-                    return (-5.0, -5.0)  # Start backing up
+            if len(valid_beams) > 0:
+                min_distance = min(valid_beams)
+                # Use half the threshold for rear detection (more conservative)
+                return min_distance < (self.obstacle_distance_threshold * 0.6)
         
-        # No obstacle - do random exploration HEAVILY biased toward FORWARD
-        if self.step_count % self.direction_change_interval == 0:
-            # 95% forward, 5% turns (much less chaotic)
-            rand = np.random.rand()
-            
-            if rand < 0.95:  # 95% forward
-                control = (6.0, 6.0)  # Fast forward
-                action = "forward"
-            elif rand < 0.975:  # 2.5% turn left
-                control = (3.0, 6.0)
-                action = "turn_left"
-            else:  # 2.5% turn right
-                control = (6.0, 3.0)
-                action = "turn_right"
-            
-            self.last_control = control
-            print(f"🎲 Random action: {action}")
+        return False
+    
+    def simple_control(self, lidar_ranges, current_pose):
+        """
+        Rule-based exploration state machine:
+        1. FORWARD: Go straight until obstacle or stuck.
+        2. TURN_RIGHT: If obstacle ahead, turn 90 deg right.
+        3. BACKUP: If stuck (no move for 3s), back up.
+        4. TURN_LEFT: After backup, turn 90 deg left.
+        """
+        self.state_steps += 1
         
-        return self.last_control
+        # Filter valid ranges
+        valid_ranges = [r for r in lidar_ranges if np.isfinite(r) and r > 0.01]
+        min_dist = min(valid_ranges) if valid_ranges else 0.0
+        
+        # --- STATE: FORWARD ---
+        if self.state == 'FORWARD':
+            # 1. Check for Obstacle
+            if self.check_obstacle_ahead(lidar_ranges):
+                print(f"⚠️ Obstacle ahead ({min_dist:.2f}m) -> Switching to TURN_RIGHT")
+                self.state = 'TURN_RIGHT'
+                self.state_steps = 0
+                return (0.0, 0.0) # Stop briefly
+            
+            # 2. Check for Stagnation (Stuck)
+            if self.step_count % self.stagnation_check_interval == 0:
+                if self.last_stagnation_pose is not None:
+                    dist = np.linalg.norm(current_pose[:2] - self.last_stagnation_pose[:2])
+                    if dist < 0.1: # Moved < 10cm in 3s
+                        print(f"🚨 Stuck (moved {dist:.2f}m) -> Switching to TURN_LEFT (Spot Turn)")
+                        self.state = 'TURN_LEFT'
+                        self.state_steps = 0
+                        self.last_stagnation_pose = np.copy(current_pose)
+                        return (0.0, 0.0)
+                self.last_stagnation_pose = np.copy(current_pose)
+            
+            # Action: Drive Forward
+            # Reduced speed from 6.0 to 3.0 to accommodate short LiDAR range (2.0m)
+            return (3.0, 3.0)
+
+        # --- STATE: TURN_RIGHT ---
+        elif self.state == 'TURN_RIGHT':
+            # Action: Turn Right (Left wheel fwd, Right wheel back)
+            if self.state_steps >= 7: # Approx 90 degrees (reduced from 12)
+                print("✅ Turn complete -> Switching to FORWARD")
+                self.state = 'FORWARD'
+                self.state_steps = 0
+                self.last_stagnation_pose = np.copy(current_pose) # Reset stuck check
+                return (3.0, 3.0)
+            return (3.0, -3.0)  # Slower turn
+
+        # --- STATE: BACKUP ---
+        elif self.state == 'BACKUP':
+            # Check for obstacle behind
+            if self.check_obstacle_behind(lidar_ranges):
+                print("🚨 Obstacle behind! -> Switching to TURN_LEFT immediately")
+                self.state = 'TURN_LEFT'
+                self.state_steps = 0
+                return (0.0, 0.0)
+            
+            # Action: Reverse
+            if self.state_steps >= 20: # Back up for ~1.2s
+                print("✅ Backup complete -> Switching to TURN_LEFT")
+                self.state = 'TURN_LEFT'
+                self.state_steps = 0
+                return (0.0, 0.0)
+            return (-5.0, -5.0)
+
+        # --- STATE: TURN_LEFT ---
+        elif self.state == 'TURN_LEFT':
+            # Action: Turn Left (Left wheel back, Right wheel fwd)
+            if self.state_steps >= 7: # Approx 90 degrees (reduced from 12)
+                print("✅ Turn complete -> Switching to FORWARD")
+                self.state = 'FORWARD'
+                self.state_steps = 0
+                self.last_stagnation_pose = np.copy(current_pose) # Reset stuck check
+                return (3.0, 3.0)
+            return (-3.0, 3.0)  # Slower turn
+            
+        return (0.0, 0.0) # Should not reach here
     
     def run(self, max_steps=500, viz_every=20):
         print(f"\n🚀 Starting random exploration for {max_steps} steps...")
         print(f"📊 Visualizing every {viz_every} steps\n")
         
         dt = self.robot.timestep / 1000.0  # Convert to seconds
+        
+        # === WARMUP PHASE ===
+        print("⏳ Warming up sensors...")
+        for _ in range(20): # Wait 20 steps (~1.2s) for sensors to stabilize
+            self.robot.robot.step(self.robot.timestep)
+            
+        # Wait for valid LiDAR data
+        print("⏳ Waiting for valid LiDAR data...")
+        while self.robot.robot.step(self.robot.timestep) != -1:
+            sensor_packet = self.robot.create_sensor_packet(dt)
+            ranges = np.array(sensor_packet['lidar']['ranges'], dtype=float)
+            
+            # Check if we have ANY data (even if it's all inf/max range)
+            if len(ranges) > 0:
+                # Debug print to see what the sensor is seeing
+                valid_finite = [r for r in ranges if np.isfinite(r)]
+                min_val = min(ranges) if len(ranges) > 0 else 0
+                max_val = max(ranges) if len(ranges) > 0 else 0
+                finite_count = len(valid_finite)
+                
+                print(f"✅ Sensors ready! Received {len(ranges)} beams.")
+                print(f"   Finite (hits): {finite_count}")
+                print(f"   Range: [{min_val:.2f}, {max_val:.2f}]")
+                break
+        # ====================
         
         while self.robot.robot.step(self.robot.timestep) != -1 and self.step_count < max_steps:
             # 1. Read sensors first
@@ -234,8 +283,17 @@ class RandomExplorationSLAM:
                 angle_min=lidar_data['angle_min'],
                 angle_inc=lidar_data['angle_increment'],
                 range_min=0.1,
-                range_max=5.0,
+                range_max=2.0,       # Updated to match user's Webots config (2.0m)
             )
+            
+            # --- DEBUG START ---
+            if self.step_count % 10 == 0:
+                valid_scan_points = np.sum((scan.ranges >= scan.range_min) & (scan.ranges <= scan.range_max))
+                # Assuming subsample is 3 as per init
+                subsample = 3 
+                used_points = valid_scan_points // subsample
+                print(f"[SCAN DEBUG] Raw valid points: {valid_scan_points}, Approx used points: {used_points}")
+            # --- DEBUG END ---
             
             estimated_pose = self.slam.step(
                 control=odom_control,
@@ -244,16 +302,22 @@ class RandomExplorationSLAM:
             )
             
             # 3. Generate control with obstacle avoidance (needs pose for stuck detection)
-            control = self.random_control(lidar_ranges, estimated_pose)
+            # 3. Generate control with rule-based state machine
+            control = self.simple_control(lidar_ranges, estimated_pose)
             
             # 4. Execute control
             self.robot.set_wheel_speeds(control[0], control[1])
             
-            # 5. Logging
-            if self.step_count % 10 == 0:  # More frequent for debugging
+            # 5. Logging - VERBOSE
+            if self.step_count % 1 == 0:  # Log EVERY step
                 coverage = self._compute_coverage()
-                print(f"[{self.step_count:4d}] Pose: ({estimated_pose[0]:6.2f}, {estimated_pose[1]:6.2f}, {estimated_pose[2]:6.2f}), "
-                      f"Coverage: {coverage:.1f}%")
+                known_cells = np.count_nonzero(self.slam.grid.log_odds)
+                valid_beams = len([r for r in lidar_ranges if np.isfinite(r) and r > 0.01])
+                print(f"STEP {self.step_count:04d} | "
+                      f"Pose: ({estimated_pose[0]:5.2f}, {estimated_pose[1]:5.2f}, {estimated_pose[2]:5.2f}) | "
+                      f"Cov: {coverage:5.2f}% ({known_cells} cells) | "
+                      f"Beams: {valid_beams:3d} | "
+                      f"Ctrl: ({control[0]:.1f}, {control[1]:.1f})")
             
             # LiDAR debugging every 50 steps
             if self.step_count % 50 == 0:
@@ -309,15 +373,33 @@ class RandomExplorationSLAM:
         # It prevents coverage from dropping when the robot gets uncertain
         known_cells = np.count_nonzero(self.slam.grid.log_odds)
         
-        # Normalize by arena size (4x4m = 16m^2)
-        # Grid is 100x100 (10000 cells) covering 5x5m
-        # Arena is 16m^2, so approx 6400 cells
+        # Normalize by arena size (10x10m = 100m^2)
+        # Grid is 300x300 (90000 cells) covering 15x15m = 225m^2
+        # Arena is 100m^2, so approx 40000 cells
         total_grid_cells = self.slam.grid.log_odds.size
-        arena_cells = int(total_grid_cells * (16.0 / 25.0))
+        arena_cells = int(total_grid_cells * (100.0 / 225.0))
         
-        # Debug print once in a while (e.g. if coverage is low but map looks full)
-        if self.step_count % 500 == 0:
-            print(f"   [Debug] Explored: {known_cells} / {arena_cells} (Arena Cells)")
+        # --- DEBUG START ---
+        if self.step_count % 10 == 0:
+            print(f"\n[COVERAGE DEBUG] Step {self.step_count}")
+            print(f"  Known Cells (log_odds != 0): {known_cells}")
+            print(f"  Total Grid Cells: {total_grid_cells}")
+            print(f"  Target Arena Cells: {arena_cells}")
+            
+            # Analyze grid values
+            lo = self.slam.grid.log_odds
+            occupied = np.count_nonzero(lo > 0)
+            free = np.count_nonzero(lo < 0)
+            print(f"  Occupied Cells (>0): {occupied}")
+            print(f"  Free Cells (<0): {free}")
+            
+            if known_cells > 0:
+                rows, cols = np.where(lo != 0)
+                r_min, r_max = rows.min(), rows.max()
+                c_min, c_max = cols.min(), cols.max()
+                print(f"  Map Bounding Box: [{r_min}:{r_max}, {c_min}:{c_max}]")
+                print(f"  Box Size: {r_max-r_min} x {c_max-c_min}")
+        # --- DEBUG END ---
 
         return min(100.0, 100.0 * known_cells / arena_cells)
 

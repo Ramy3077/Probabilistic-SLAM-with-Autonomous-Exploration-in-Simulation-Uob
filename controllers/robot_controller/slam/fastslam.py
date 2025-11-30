@@ -44,6 +44,8 @@ class FastSLAM:
         self.particles.normalize_weights()
 
     def predict(self, control: Tuple[float, float], dt: float) -> None:
+        # DEBUG: Check control inputs
+        # print(f"DEBUG FASTSLAM: Control={control}, dt={dt}")
         
         # Moves every particle using Sahib's motion model.
         # Note: This loop is slower than vectorization, but allows using the flexible motion model function agrred on by the team.
