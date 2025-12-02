@@ -79,7 +79,7 @@ class MyRobot:
         distance_val[1] = (ps_values[1] - self.right_offset) * WHEEL_RADIUS
         
         # DEBUG ODOMETRY
-        # print(f"DEBUG ODOM: PS=[{ps_values[0]:.2f}, {ps_values[1]:.2f}] Off=[{self.left_offset:.2f}, {self.right_offset:.2f}] Dist=[{distance_val[0]:.2f}, {distance_val[1]:.2f}]")
+        print(f"[ODOM DEBUG] PS: L={ps_values[0]:.4f} R={ps_values[1]:.4f} | Off: L={self.left_offset:.4f} R={self.right_offset:.4f} | Dist: L={distance_val[0]:.4f} R={distance_val[1]:.4f}")
 
         return distance_val[0], distance_val[1]
 

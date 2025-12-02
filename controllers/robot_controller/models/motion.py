@@ -31,8 +31,8 @@ def sample_motion_simple(
     
     # Add noise to control inputs 
     # Increased noise to account for slip during sharp turns
-    noise_v = rng.normal(0, 0.05)  
-    noise_omega = rng.normal(0, 0.2)  
+    noise_v = rng.normal(0, 0.02)  
+    noise_omega = rng.normal(0, 0.05)  
     
     v_noisy = v + noise_v
     omega_noisy = omega + noise_omega
