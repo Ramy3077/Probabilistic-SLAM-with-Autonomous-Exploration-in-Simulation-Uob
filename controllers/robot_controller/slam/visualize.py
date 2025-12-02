@@ -112,8 +112,8 @@ def plot_map(
         x, y, theta = pose
         px, py = world_to_image(x, y)
         
-        # Robot circle (radius ~10cm in world = ~2 cells)
-        robot_radius = int(2 * scale)
+        # Robot circle (radius ~20cm in world = ~4 cells, diameter ~0.4m)
+        robot_radius = int(4 * scale)
         draw.ellipse(
             [(px - robot_radius, py - robot_radius), 
              (px + robot_radius, py + robot_radius)],
@@ -122,7 +122,7 @@ def plot_map(
         )
         
         # Orientation arrow
-        arrow_len = int(3 * scale)
+        arrow_len = int(6 * scale)
         px_end = px + arrow_len * np.cos(theta)
         py_end = py - arrow_len * np.sin(theta)  # Negative because image y is flipped
         draw.line([(px, py), (int(px_end), int(py_end))], 

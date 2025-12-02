@@ -93,9 +93,10 @@ class FastSLAM:
                     p_occ = prob_map[i, j]
 
                     if r < (scan.range_max - 0.1):  # Hit an obstacle
-                        likelihood = 0.9 * p_occ + 0.1 * (1 - p_occ)
+                        # Stronger reward for hitting occupied cells
+                        likelihood = 0.95 * p_occ + 0.05 * (1 - p_occ)
                     else:  # Max range (no obstacle)
-                        likelihood = 0.1 * p_occ + 0.9 * (1 - p_occ)
+                        likelihood = 0.05 * p_occ + 0.95 * (1 - p_occ)
                 else:
                     likelihood = 0.01
                 
