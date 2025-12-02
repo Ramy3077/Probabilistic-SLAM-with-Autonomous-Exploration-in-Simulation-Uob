@@ -37,3 +37,30 @@ Project Goal:
 
 Our end goal would be to Show that probabilistic SLAM combined with smart exploration can
 produce an autonomous robot that maps and learns its world with confidence.
+
+
+#NOTES
+## Exploration API (Bassel)
+
+**Grid encoding (int):** `-1 = unknown`, `0 = free`, `1 = occupied`.
+
+**Coordinate frames**
+- SLAM grid: row-major `(i, j)` with `i` downwards, `j` to the right (confirm).
+- World: meters `(x, y)`, same axes used by Webots/world.
+- Conversion: `ij_to_xy(i, j, origin_xy, resolution)` where:
+  - `origin_xy` = world coords of grid cell `(0,0)`
+  - `resolution` = meters per cell (e.g., `0.05`)
+
+**Functions**
+- `detect_frontiers(grid, unknown_val=-1, free_val=0, connectivity=4) -> List[(i, j)]`  
+  Returns FREE cells that border UNKNOWN (frontiers).
+- `choose_frontier(frontiers, pose_ij) -> (i, j) | None`  
+  Picks the nearest frontier to the current grid pose.
+
+**Goal handoff (planner → controller)**
+1. Ramy provides: `grid (HxW)`, `origin_xy`, `resolution`, and robot `pose_ij`.
+2. Bassel: `frontier_ij = choose_frontier(detect_frontiers(grid), pose_ij)`
+3. Convert to world: `goal_xy = ij_to_xy(*frontier_ij, origin_xy, resolution)`
+4. Sahib’s controller consumes `goal_xy` (meters).
+
+
