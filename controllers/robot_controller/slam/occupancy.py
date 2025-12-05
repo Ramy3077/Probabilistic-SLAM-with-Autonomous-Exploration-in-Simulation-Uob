@@ -87,6 +87,20 @@ class OccupancyGrid:
     def _apply_delta(self, i: int, j: int, delta: float) -> None:
         if not self.in_bounds(i, j):
             return
+        
+        # DIAGNOSTIC: Track updates to specific cells to debug corruption
+        DEBUG_WALL_CORRUPTION = False  # Set to True to enable logging
+        if DEBUG_WALL_CORRUPTION:
+            # Monitor cells in a specific range (adjust based on where corruption occurs)
+            if 140 <= i <= 160 and 140 <= j <= 160:
+                old_val = self.log_odds[i, j]
+                new_val = np.clip(old_val + delta, self.spec.l_min, self.spec.l_max)
+                if abs(delta) > 0.01:  # Only log significant changes
+                    import traceback
+                    caller = traceback.extract_stack()[-2]
+                    action = "FREE" if delta < 0 else "OCC"
+                    print(f"  [{action}] Cell ({i},{j}): {old_val:.2f} → {new_val:.2f} (Δ={delta:.2f}) from {caller.filename}:{caller.lineno}")
+        
         self.log_odds[i, j] = float(
             np.clip(self.log_odds[i, j] + delta, self.spec.l_min, self.spec.l_max)
         )
@@ -102,10 +116,16 @@ class OccupancyGrid:
         # Returns occupancy probabilities via logistic transform p = 1 / (1 + exp(-l)).
         return 1.0 / (1.0 + np.exp(-self.log_odds))
 
-def get_trinary_map(self) -> np.ndarray:
+    def get_trinary_map(self) -> np.ndarray:
         """
         Converts the log-odds map into the {-1, 0, 1} format 
         for the frontier planner (Bassel).
+        
+        Returns:
+            np.ndarray: Trinary map where:
+                -1 = FREE (navigable space)
+                 0 = UNKNOWN (unexplored)
+                 1 = OCCUPIED (obstacles)
         """
         # Define thresholds. You can tune these.
         occupied_thresh = self.spec.l_occ  # e.g., 0.85
@@ -122,87 +142,111 @@ def get_trinary_map(self) -> np.ndarray:
         return trinary_map
 
         
+# --- Helper functions ---
+
+def bresenham_line(x0, y0, x1, y1):
+    """
+    Bresenham's line algorithm from toolbuddy/2D-Grid-SLAM.
+    Returns a list of (x, y) tuples from (x0, y0) towards (x1, y1).
+    """
+    rec = []
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    x, y = x0, y0
+    sx = -1 if x0 > x1 else 1
+    sy = -1 if y0 > y1 else 1
+    if dx > dy:
+        err = dx / 2.0
+        while x != x1:
+            rec.append((x, y))
+            err -= dy
+            if err < 0:
+                y += sy
+                err += dx
+            x += sx
+    else:
+        err = dy / 2.0
+        while y != y1:
+            rec.append((x, y))
+            err -= dx
+            if err < 0:
+                x += sx
+                err += dy
+            y += sy
+    return rec
+
+
 def update_map(
     grid: OccupancyGrid,
     pose: Pose,
     scan: LaserScan,
-    *,
     beam_subsample: int = 1,
-    apply_free_and_occ: bool = False,
+    apply_free_and_occ: bool = True,
 ) -> None:
-    
-    # Update occupancy grid from a single scan at robot pose.
     """
-    Template behavior:
-        - If apply_free_and_occ is False (default), this is a no-op to keep the
-          pipeline runnable during early scaffolding.
-        - If True, applies a simple, approximate ray-carving update without
-          performance optimizations or sensor error handling.
-
-    Args:
-        grid: OccupancyGrid to update in-place.
-        pose: np.ndarray shape (3,) [x, y, theta] in world frame.
-        scan: LaserScan with angles in robot frame, 0 pointing forward.
-        beam_subsample: Use every k-th beam for speed.
-        apply_free_and_occ: Enable naive free-space carving and hit marking.
+    Updates the map using toolbuddy's "Bresenham + Tip Thickening" logic.
+    
+    Logic:
+    - Trace line from Robot to Hit using Bresenham.
+    - Mark the path (except last 2 pixels) as Free (-0.7).
+    - Mark the last 2 pixels as Occupied (0.9).
+    - This creates a "Thick Wall" effect.
     """
     if not apply_free_and_occ:
         return
 
-    x_r, y_r, th_r = float(pose[0]), float(pose[1]), float(pose[2])
-
-    ranges = np.asarray(scan.ranges, dtype=float)
-    N = ranges.shape[0]
-    if N == 0:
-        return
+    x_r, y_r, th_r = pose
+    ranges = np.asarray(scan.ranges)
     
-    # === CRITICAL: Mark robot footprint FIRST (always, even if scan is bad) ===
-    # The robot physically occupied this space, so mark it as explored regardless of LiDAR quality
-    robot_radius_cells = int(np.ceil(0.5 / grid.spec.resolution))  # 0.5m radius in cells
-    i_robot, j_robot = grid.world_to_grid(x_r, y_r)
+    # toolbuddy parameters
+    lo_free = -0.7
+    lo_occ = 0.9
     
-    for di in range(-robot_radius_cells, robot_radius_cells + 1):
-        for dj in range(-robot_radius_cells, robot_radius_cells + 1):
-            # Check if within circular footprint
-            if di*di + dj*dj <= robot_radius_cells*robot_radius_cells:
-                grid.mark_free(i_robot + di, j_robot + dj)
+    # Pre-calculate beam angles
+    angles = th_r + (scan.angle_min + np.arange(len(ranges)) * scan.angle_inc)
     
-    # === SCAN VALIDATION: Skip ray tracing for corrupt scans (but footprint already marked) ===
-    valid_beam_count = sum(1 for r in ranges if np.isfinite(r) and scan.range_min <= r <= scan.range_max)
-    valid_ratio = valid_beam_count / N
-    
-    if valid_ratio < 0.2:  # Less than 20% valid beams
-        # print(f"  [update_map] Skipping ray tracing ({valid_ratio*100:.0f}% valid beams) but footprint marked")
-        return  # Skip ray tracing, but footprint is already marked above
-
-    k_indices = range(0, N, max(1, int(beam_subsample)))
-    res = grid.spec.resolution
-    for k in k_indices:
+    # Iterate through beams
+    for k in range(0, len(ranges), max(1, beam_subsample)):
         r = ranges[k]
+        
+        # Skip invalid ranges
         if not np.isfinite(r) or r < scan.range_min or r > scan.range_max:
             continue
-
-        ang = th_r + (scan.angle_min + k * scan.angle_inc)
-        x_end = x_r + r * np.cos(ang)
-        y_end = y_r + r * np.sin(ang)
-
-        i0, j0 = grid.world_to_grid(x_r, y_r)
-        i1, j1 = grid.world_to_grid(x_end, y_end)
-
-        # Discretize line using simple DDA-like stepping
-        di = i1 - i0
-        dj = j1 - j0
-        steps = int(max(abs(di), abs(dj), 1))
-        if steps == 0:
-            continue
-        for s in range(steps):
-            ti = i0 + int(np.round(s * di / steps))
-            tj = j0 + int(np.round(s * dj / steps))
-            if (ti, tj) != (i1, j1):
-                grid.mark_free(ti, tj)
-
-        if r < (scan.range_max - 1e-6):
-            grid.mark_occupied(i1, j1)
-
-
-
+            
+        # Calculate endpoint in world coordinates
+        x_end = x_r + r * np.cos(angles[k])
+        y_end = y_r + r * np.sin(angles[k])
+        
+        # Convert to grid coordinates
+        i_start, j_start = grid.world_to_grid(x_r, y_r)
+        i_end, j_end = grid.world_to_grid(x_end, y_end)
+        
+        # Trace line using toolbuddy's Bresenham
+        # Note: toolbuddy's Bresenham excludes the final point (x1, y1)
+        # So 'rec' contains the path up to the endpoint
+        rec = bresenham_line(i_start, j_start, i_end, j_end)
+        
+        # FIX: toolbuddy's Bresenham excludes the endpoint, so we must add it manually
+        # to ensure the actual hit is marked.
+        rec.append((i_end, j_end))
+        
+        # Apply toolbuddy's update rule
+        for idx, (i, j) in enumerate(rec):
+            if not grid.in_bounds(i, j):
+                continue
+                
+            # Logic: Last 2 pixels are Occupied, rest are Free
+            if idx < len(rec) - 2:
+                change = lo_free
+                
+                # STICKY WALLS: Do not overwrite occupied cells with free space
+                # If cell is already occupied (log_odds > 0), skip free update
+                if grid.log_odds[i, j] > 0.0:
+                    continue
+            else:
+                change = lo_occ
+                
+            grid.log_odds[i, j] += change
+            
+            # Clamp log-odds (toolbuddy uses -5.0 to 5.0)
+            grid.log_odds[i, j] = max(-5.0, min(5.0, grid.log_odds[i, j]))
