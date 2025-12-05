@@ -11,11 +11,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from robots.robot import MyRobot
 
 # SLAM imports
-from slam.fastslam import FastSLAM, FastSLAMConfig
+from slam.fastslam import ParticleFilterSLAM, FastSLAMConfig
 from slam.occupancy import OccupancyGrid, GridSpec, LaserScan
 from slam.particles import Pose
 from slam.visualize import plot_map
 from models.motion import sample_motion_simple
+
+# Trap recovery imports
+from control.trap_recovery import TrapDetector, EscapeController, check_and_escape
+
 
 
 class RandomExplorationSLAM:
@@ -23,28 +27,28 @@ class RandomExplorationSLAM:
         # Initialize Webots robot
         self.robot = MyRobot()
         
-        # Create occupancy grid matching actual arena size (4m x 4m arena)
-        # Using 5m x 5m grid to have some margin around walls
+        # Create occupancy grid matching actual arena size (10m x 10m arena)
+        # Using 20m x 20m grid to cover full Lidar range (4m) + margin
         grid_spec = GridSpec(
             resolution=0.05,     # 5cm resolution
-            width=300,           # 300 cells × 0.05m = 15m (covers 10x10m arena with margin)
-            height=300,          # 300 cells × 0.05m = 15m
-            origin_x=-7.5,       # Center the 15m grid
-            origin_y=-7.5,
+            width=400,           # 400 cells × 0.05m = 20m
+            height=400,          # 400 cells × 0.05m = 20m
+            origin_x=-10.0,      # Center the 20m grid
+            origin_y=-10.0,
             l_occ=0.85,
             l_free=-0.4,
         )
         self.grid = OccupancyGrid(grid_spec)
         
-        # Initialize FastSLAM with fewer particles for large environment (faster)
+        # Initialize ParticleFilterSLAM with fewer particles for large environment (faster)
         init_pose = np.array([0.0, 0.0, 0.0], dtype=float)
         config = FastSLAMConfig(
-            num_particles=50,      # Increased from 30 for robustness in degenerate scenarios
-            beam_subsample=3,      # Reduced from 10 - improves coverage speed
+            num_particles=200,     # Increased from 50 to 200 to prevent "getting lost"
+            beam_subsample=5,      # Increased subsample slightly to maintain performance
             resample_threshold_ratio=0.5,
         )
         
-        self.slam = FastSLAM(
+        self.slam = ParticleFilterSLAM(
             grid=self.grid,
             init_pose=init_pose,
             motion_model=sample_motion_simple,
@@ -92,7 +96,23 @@ class RandomExplorationSLAM:
         for old_file in self.output_dir.glob("*.png"):
             old_file.unlink()
         
-        print("✅ Initialized random exploration SLAM")
+        # Initialize Trap Recovery System
+        self.trap_detector = TrapDetector(
+            robot_radius=0.225,  # meters (physical robot radius)
+            wedge_threshold=0.9,  # Detect wedge if distance < 0.9 * radius
+            valid_beam_threshold=0.15,  # Require 15% valid beams minimum (relaxed from 30%)
+            stagnation_threshold=0.15,  # Stuck if moved < 0.15m (relaxed from 0.1m)
+            check_interval_steps=20  # Check every 20 steps
+        )
+        self.escape_controller = EscapeController(
+            max_escape_steps=40,
+            shake_amplitude=5.0,
+            backup_speed=-4.0,
+            forward_speed=4.0,
+            turn_speed=4.0
+        )
+        
+        print("✅ Initialized random exploration SLAM with trap recovery")
         print(f"Grid: {grid_spec.width}x{grid_spec.height} cells, {grid_spec.resolution}m resolution")
         print(f"Particles: {config.num_particles}")
         print(f"Obstacle threshold: {self.obstacle_distance_threshold}m")
@@ -157,85 +177,51 @@ class RandomExplorationSLAM:
         
         return False
     
-    def simple_control(self, lidar_ranges, current_pose):
+    def simple_control(self, lidar_ranges, current_pose, angle_min, angle_inc):
         """
-        Rule-based exploration state machine:
-        1. FORWARD: Go straight until obstacle or stuck.
-        2. TURN_RIGHT: If obstacle ahead, turn 90 deg right.
-        3. BACKUP: If stuck (no move for 3s), back up.
-        4. TURN_LEFT: After backup, turn 90 deg left.
+        Simple Random Exploration Logic.
+        Rule: Go Straight, Turn Randomly (Left/Right) at Obstacle.
         """
         self.state_steps += 1
         
-        # Filter valid ranges
-        valid_ranges = [r for r in lidar_ranges if np.isfinite(r) and r > 0.01]
-        min_dist = min(valid_ranges) if valid_ranges else 0.0
+        # Check front sector for obstacles
+        obstacle_ahead = self.check_obstacle_ahead(lidar_ranges)
         
-        # --- STATE: FORWARD ---
         if self.state == 'FORWARD':
-            # 1. Check for Obstacle
-            if self.check_obstacle_ahead(lidar_ranges):
-                print(f"⚠️ Obstacle ahead ({min_dist:.2f}m) -> Switching to TURN_RIGHT")
-                self.state = 'TURN_RIGHT'
+            if obstacle_ahead:
+                # Pick random direction (50/50)
+                if np.random.random() < 0.5:
+                    print(f"⚠️ Obstacle detected -> Switching to TURN_RIGHT")
+                    self.state = 'TURN_RIGHT'
+                else:
+                    print(f"⚠️ Obstacle detected -> Switching to TURN_LEFT")
+                    self.state = 'TURN_LEFT'
                 self.state_steps = 0
                 return (0.0, 0.0) # Stop briefly
-            
-            # 2. Check for Stagnation (Stuck)
-            if self.step_count % self.stagnation_check_interval == 0:
-                if self.last_stagnation_pose is not None:
-                    dist = np.linalg.norm(current_pose[:2] - self.last_stagnation_pose[:2])
-                    if dist < 0.1: # Moved < 10cm in 3s
-                        print(f"🚨 Stuck (moved {dist:.2f}m) -> Switching to TURN_LEFT (Spot Turn)")
-                        self.state = 'TURN_LEFT'
-                        self.state_steps = 0
-                        self.last_stagnation_pose = np.copy(current_pose)
-                        return (0.0, 0.0)
-                self.last_stagnation_pose = np.copy(current_pose)
-            
-            # Action: Drive Forward
-            # Reduced speed from 6.0 to 3.0 to accommodate short LiDAR range (2.0m)
-            return (3.0, 3.0)
-
-        # --- STATE: TURN_RIGHT ---
+            else:
+                # Go Straight
+                return (4.0, 4.0)
+        
         elif self.state == 'TURN_RIGHT':
-            # Action: Turn Right (Left wheel fwd, Right wheel back)
-            if self.state_steps >= 7: # Approx 90 degrees (reduced from 12)
-                print("✅ Turn complete -> Switching to FORWARD")
-                self.state = 'FORWARD'
-                self.state_steps = 0
-                self.last_stagnation_pose = np.copy(current_pose) # Reset stuck check
-                return (3.0, 3.0)
-            return (3.0, -3.0)  # Slower turn
+            # Turn Right until obstacle clears AND minimum duration passes
+            # (min 10 steps to ensure we actually turn away)
+            if self.state_steps > 10 and not obstacle_ahead:
+                 print("✅ Path clear -> Switching to FORWARD")
+                 self.state = 'FORWARD'
+                 self.state_steps = 0
+                 return (4.0, 4.0)
+            return (3.0, -3.0)
 
-        # --- STATE: BACKUP ---
-        elif self.state == 'BACKUP':
-            # Check for obstacle behind
-            if self.check_obstacle_behind(lidar_ranges):
-                print("🚨 Obstacle behind! -> Switching to TURN_LEFT immediately")
-                self.state = 'TURN_LEFT'
-                self.state_steps = 0
-                return (0.0, 0.0)
-            
-            # Action: Reverse
-            if self.state_steps >= 20: # Back up for ~1.2s
-                print("✅ Backup complete -> Switching to TURN_LEFT")
-                self.state = 'TURN_LEFT'
-                self.state_steps = 0
-                return (0.0, 0.0)
-            return (-5.0, -5.0)
-
-        # --- STATE: TURN_LEFT ---
         elif self.state == 'TURN_LEFT':
-            # Action: Turn Left (Left wheel back, Right wheel fwd)
-            if self.state_steps >= 7: # Approx 90 degrees (reduced from 12)
-                print("✅ Turn complete -> Switching to FORWARD")
-                self.state = 'FORWARD'
-                self.state_steps = 0
-                self.last_stagnation_pose = np.copy(current_pose) # Reset stuck check
-                return (3.0, 3.0)
-            return (-3.0, 3.0)  # Slower turn
+            # Turn Left until obstacle clears AND minimum duration passes
+            if self.state_steps > 10 and not obstacle_ahead:
+                 print("✅ Path clear -> Switching to FORWARD")
+                 self.state = 'FORWARD'
+                 self.state_steps = 0
+                 return (4.0, 4.0)
+            return (-3.0, 3.0)
             
-        return (0.0, 0.0) # Should not reach here
+        return (0.0, 0.0)
     
     def run(self, max_steps=500, viz_every=20):
         print(f"\n🚀 Starting random exploration for {max_steps} steps...")
@@ -283,7 +269,7 @@ class RandomExplorationSLAM:
                 angle_min=lidar_data['angle_min'],
                 angle_inc=lidar_data['angle_increment'],
                 range_min=0.1,
-                range_max=2.0,       # Updated to match user's Webots config (2.0m)
+                range_max=4.0,       # Updated to match 360 Lidar config (4.0m)
             )
             
             # --- DEBUG START ---
@@ -301,9 +287,13 @@ class RandomExplorationSLAM:
                 scan=scan
             )
             
-            # 3. Generate control with obstacle avoidance (needs pose for stuck detection)
-            # 3. Generate control with rule-based state machine
-            control = self.simple_control(lidar_ranges, estimated_pose)
+            # 3. Generate control with trap-aware state machine
+            control = self.simple_control(
+                lidar_ranges,
+                estimated_pose,
+                scan.angle_min,
+                scan.angle_inc
+            )
             
             # 4. Execute control
             self.robot.set_wheel_speeds(control[0], control[1])
@@ -374,10 +364,10 @@ class RandomExplorationSLAM:
         known_cells = np.count_nonzero(self.slam.grid.log_odds)
         
         # Normalize by arena size (10x10m = 100m^2)
-        # Grid is 300x300 (90000 cells) covering 15x15m = 225m^2
-        # Arena is 100m^2, so approx 40000 cells
+        # Grid is 400x400 (160000 cells) covering 20x20m = 400m^2
+        # Arena is ~110m^2 (including walls/margin), so approx 44000 cells
         total_grid_cells = self.slam.grid.log_odds.size
-        arena_cells = int(total_grid_cells * (100.0 / 225.0))
+        arena_cells = int(total_grid_cells * (110.0 / 400.0))
         
         # --- DEBUG START ---
         if self.step_count % 10 == 0:
