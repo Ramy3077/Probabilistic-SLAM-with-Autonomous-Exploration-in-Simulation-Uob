@@ -19,7 +19,10 @@ class FastSLAMConfig:
     # Skip every Nth beam to make mapping faster
     beam_subsample: int = 2 
 
-class FastSLAM:
+class ParticleFilterSLAM:
+    """
+    Clean Design: Particle Filter Localization + Single Global Map.
+    """
 
     def __init__(
         self,
@@ -34,7 +37,7 @@ class FastSLAM:
         self.config = config or FastSLAMConfig()
         self.rng = rng or np.random.default_rng()
 
-        # Initialize particles clustered around the start pose
+        # Initialize particles
         self.particles = initialize_particles_gaussian(
             num_particles=self.config.num_particles,
             mean_pose=init_pose.astype(float),
@@ -43,83 +46,43 @@ class FastSLAM:
         )
         self.particles.normalize_weights()
 
-    def predict(self, control: Tuple[float, float], dt: float) -> None:
-        # DEBUG: Check control inputs
-        # print(f"DEBUG FASTSLAM: Control={control}, dt={dt}")
+    def step(self, control: Tuple[float, float], dt: float, scan: Optional[LaserScan]) -> Pose:
+        """
+        Main SLAM loop:
+        1. Motion update
+        2. Measurement update
+        3. Normalize + Resample
+        4. Choose best pose
+        5. Update global map
+        """
         
-        # Moves every particle using Sahib's motion model.
-        # Note: This loop is slower than vectorization, but allows using the flexible motion model function agrred on by the team.
+        # 1. Motion update (Predict)
         for p in self.particles.particles:
-            p.pose = self.motion_model(p.pose, control, dt, self.rng)
-        
+            # Motion model returns new pose [x, y, theta]
+            new_pose = self.motion_model(p.pose, control, dt, self.rng)
+            p.x, p.y, p.theta = new_pose
 
-    def measurement_update(self, scan: LaserScan) -> None:
-
+        # If no scan, we just return the best guess based on motion
         if scan is None or len(scan.ranges) == 0:
-            return
-        
+            return self.best_pose()
+
+        # 2. Measurement update (Weights)
+        # Pre-calculate beam indices for efficiency
         ranges = np.asarray(scan.ranges, dtype=float)
-        N_beams = len(ranges)
-        
-        # Subsample beams for efficiency
-        beam_indices = range(0, N_beams, max(1, self.config.beam_subsample))
-        
-        # Get probabilities from occupancy grid 
+        beam_indices = range(0, len(ranges), max(1, self.config.beam_subsample))
         prob_map = self.grid.probabilities()
-        
-        for particle in self.particles.particles:
-            x_r, y_r, th_r = particle.pose
-            log_likelihood = 0.0
-            
-            for k in beam_indices:
-                r = ranges[k]
-                
-                # Skip invalid measurements
-                if not np.isfinite(r) or r < scan.range_min or r > scan.range_max:
-                    continue
-                
-                # Compute beam angle in world frame
-                beam_angle = th_r + (scan.angle_min + k * scan.angle_inc)
-                
-                # Expected endpoint in world coordinates
-                x_end = x_r + r * np.cos(beam_angle)
-                y_end = y_r + r * np.sin(beam_angle)
-                
-                # Convert to grid coordinates
-                i, j = self.grid.world_to_grid(x_end, y_end)
-                
-                # Compute likelihood based on occupancy probability
-                if self.grid.in_bounds(i, j):
-                    p_occ = prob_map[i, j]
 
-                    if r < (scan.range_max - 0.1):  # Hit an obstacle
-                        # Stronger reward for hitting occupied cells
-                        likelihood = 0.95 * p_occ + 0.05 * (1 - p_occ)
-                    else:  # Max range (no obstacle)
-                        likelihood = 0.05 * p_occ + 0.95 * (1 - p_occ)
-                else:
-                    likelihood = 0.01
-                
-                log_likelihood += np.log(max(likelihood, 1e-10))
-            
-            # Convert log likelihood back to weight
-            particle.weight = np.exp(log_likelihood)
+        for p in self.particles.particles:
+            p.weight = self._compute_likelihood(p, scan, ranges, beam_indices, prob_map)
 
-    def maybe_resample(self) -> None:
-        #Checks if particles are degenerating and resamples if needed.
-        N = len(self.particles.particles)
-        neff = self.particles.effective_sample_size()
-        
-        if neff < (N * self.config.resample_threshold_ratio):
-            self.particles.resample_low_variance(rng=self.rng)
+        # 3. Normalize + Resample
+        self.particles.normalize_weights()
+        self._maybe_resample()
 
-    def update_map_with_best(self, scan: LaserScan) -> None:
-        
-        # Takes the single best particle and updates the global map.
-        poses, weights = self.particles.as_arrays()
-        best_idx = int(np.argmax(weights))
-        best_pose = poses[best_idx]
+        # 4. Choose mapping pose (best particle)
+        best_pose = self.best_pose()
 
+        # 5. Update global map using ONLY this pose
         update_map(
             grid=self.grid,
             pose=best_pose,
@@ -128,21 +91,65 @@ class FastSLAM:
             apply_free_and_occ=True,
         )
 
-    def step(self, control: Tuple[float, float], dt: float, scan: Optional[LaserScan]) -> Pose:
+        return best_pose
+
+    def _compute_likelihood(self, particle, scan, ranges, beam_indices, prob_map) -> float:
+        """Helper to compute likelihood for a single particle"""
+        x_r, y_r, th_r = particle.x, particle.y, particle.theta
+        log_likelihood = 0.0
         
-        # 1. Move (Predict)
-        self.predict(control=control, dt=dt)
-        
-        # 2. See (Update)
-        if scan is not None:
-            self.measurement_update(scan)
-            self.particles.normalize_weights()
-            self.maybe_resample()
-            self.update_map_with_best(scan)
+        for k in beam_indices:
+            r = ranges[k]
+            if not np.isfinite(r) or r < scan.range_min or r > scan.range_max:
+                continue
             
-        return self.best_pose()
+            # Beam endpoint
+            ang = th_r + (scan.angle_min + k * scan.angle_inc)
+            x_end = x_r + r * np.cos(ang)
+            y_end = y_r + r * np.sin(ang)
+            
+            # Grid lookup
+            i, j = self.grid.world_to_grid(x_end, y_end)
+            
+            if self.grid.in_bounds(i, j):
+                p_occ = prob_map[i, j]
+                # Simple sensor model
+                if r < (scan.range_max - 0.1): # Hit
+                    likelihood = 0.95 * p_occ + 0.05 * (1 - p_occ)
+                else: # Miss (max range)
+                    likelihood = 0.05 * p_occ + 0.95 * (1 - p_occ)
+            else:
+                likelihood = 0.01
+            
+            log_likelihood += np.log(max(likelihood, 1e-10))
+            
+        return np.exp(log_likelihood)
+
+    def _maybe_resample(self) -> None:
+        N = len(self.particles.particles)
+        neff = self.particles.effective_sample_size()
+        
+        if neff < (N * self.config.resample_threshold_ratio):
+            # Jitter function for diversity
+            def add_jitter(pose: Pose, idx: int) -> Pose:
+                noise_xy = 0.05
+                noise_th = np.deg2rad(5)
+                jittered = pose.copy()
+                jittered[0] += np.random.normal(0, noise_xy)
+                jittered[1] += np.random.normal(0, noise_xy)
+                jittered[2] += np.random.normal(0, noise_th)
+                jittered[2] = (jittered[2] + np.pi) % (2 * np.pi) - np.pi
+                return jittered
+            
+            self.particles.resample_low_variance(rng=self.rng, jitter_fn=add_jitter)
 
     def best_pose(self) -> Pose:
+        # Find particle with max weight
+        # Note: After resampling, weights are uniform, so this might pick any.
+        # But before resampling (or if not resampled), it picks the best.
+        # Ideally we track the best *before* resampling if we want the absolute best of the previous step.
+        # But for mapping, using the resampled set is also fine (they are all "good").
+        # To be safe and consistent with "Clean Design", we pick max weight.
         poses, weights = self.particles.as_arrays()
         best_idx = int(np.argmax(weights))
         return poses[best_idx]
