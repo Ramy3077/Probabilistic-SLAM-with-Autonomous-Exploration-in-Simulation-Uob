@@ -85,3 +85,38 @@ def sample_motion_velocity(
     theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
     
     return np.array([x_new, y_new, theta_new], dtype=float)
+
+
+def compute_motion_odometry(
+    pose: Pose,
+    control: Control,
+    dt: float,
+) -> Pose:
+    # Deterministic motion model for pure odometry mapping (No Noise)
+    
+    x, y, theta = pose
+    v_l, v_r = control
+    
+    # Robot parameters 
+    axle_length = 0.45    # Corrected from 0.09 to match robot.py
+    
+    # Convert wheel velocities to linear and angular velocity
+    # Inputs v_l, v_r are already in m/s
+    v = (v_l + v_r) / 2.0  # Linear velocity
+    omega = (v_r - v_l) / axle_length  # Angular velocity 
+    
+    # Update pose using differential drive kinematics (Deterministic)
+    if abs(omega) < 1e-6:  # Straight line motion
+        x_new = x + v * dt * np.cos(theta)
+        y_new = y + v * dt * np.sin(theta)
+        theta_new = theta
+    else:  # Curved motion
+        radius = v / omega
+        x_new = x + radius * (np.sin(theta + omega * dt) - np.sin(theta))
+        y_new = y - radius * (np.cos(theta + omega * dt) - np.cos(theta))
+        theta_new = theta + omega * dt
+    
+    # Normalize angle to [-pi, pi]
+    theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
+    
+    return np.array([x_new, y_new, theta_new], dtype=float)
