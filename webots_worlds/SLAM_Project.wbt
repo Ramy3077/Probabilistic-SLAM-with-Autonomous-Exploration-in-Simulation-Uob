@@ -197,10 +197,10 @@ Robot {
     Lidar {
       translation 0 0 0.45
       rotation 0 0 1 -1.5731853071795863
-      horizontalResolution 128
-      fieldOfView 1.57
+      horizontalResolution 512
+      fieldOfView 6.28
       numberOfLayers 1
-      maxRange 2
+      maxRange 4
     }
   ]
   boundingObject USE body
