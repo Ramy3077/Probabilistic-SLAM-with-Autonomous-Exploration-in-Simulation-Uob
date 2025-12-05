@@ -75,6 +75,7 @@ class MyRobot:
         distance_val = [0.0, 0.0]
 
         # Equation: S = theta * r:
+        # Reverted to standard calculation (val - off) as user confirmed backward motion with negation
         distance_val[0] = (ps_values[0] - self.left_offset) * WHEEL_RADIUS
         distance_val[1] = (ps_values[1] - self.right_offset) * WHEEL_RADIUS
         
@@ -104,12 +105,13 @@ class MyRobot:
 
         return v_l, v_r
         
-   
-
+    
 
     def read_lidar(self):
         
         ranges = self.lidar.getRangeImage()
+        # Reverse ranges to match standard Lidar convention (Right-to-Left) if Webots is Left-to-Right
+        ranges.reverse()
         
         num_beams = len(ranges)
         angle_min = -self.lidar.getFov() / 2
@@ -117,6 +119,19 @@ class MyRobot:
         angle_inc = (angle_max - angle_min) / num_beams
         
         return ranges, angle_min, angle_max, angle_inc
+
+    def get_lidar_data(self):
+        """
+        Returns lidar data in the format expected by SLAM scripts.
+        """
+        ranges, angle_min, angle_max, angle_inc = self.read_lidar()
+        return {
+            "ranges": ranges,
+            "angle_min": angle_min,
+            "angle_max": angle_max,
+            "angle_increment": angle_inc,
+            "max_range": self.lidar.getMaxRange()
+        }
 
     def create_sensor_packet(self, dt):
         """
