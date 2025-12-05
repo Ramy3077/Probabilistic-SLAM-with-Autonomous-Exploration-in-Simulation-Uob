@@ -12,17 +12,22 @@ Control = Tuple[float, float]  # (v_left, v_right) wheel speeds or generic 2-dof
 
 @dataclass
 class Particle:
-    
-    # Represents a single particle hypothesis for robot pose.
-
     """
-    Attributes:
-        pose: np.ndarray of shape (3,) -> [x, y, theta]
-        weight: Importance weight (unnormalized or normalized, depending on stage)
+    Simple data container for a particle.
     """
+    x: float
+    y: float
+    theta: float
+    weight: float = 1.0
 
-    pose: Pose
-    weight: float
+    @property
+    def pose(self) -> np.ndarray:
+        """Helper to get pose as array for compatibility"""
+        return np.array([self.x, self.y, self.theta])
+
+    @pose.setter
+    def pose(self, val: np.ndarray):
+        self.x, self.y, self.theta = val
 
 
 class ParticleSet:
@@ -43,7 +48,8 @@ class ParticleSet:
         if poses.shape[0] != weights.shape[0]:
             raise ValueError("Poses and weights must have the same length.")
         self.particles = [
-            Particle(pose=poses[i].astype(float), weight=float(weights[i])) for i in range(poses.shape[0])
+            Particle(x=poses[i, 0], y=poses[i, 1], theta=poses[i, 2], weight=float(weights[i])) 
+            for i in range(poses.shape[0])
         ]
 
     def predict_move(self, forward_move: float, angular_move: float, noise_std: Tuple[float, float]) -> None:
@@ -159,7 +165,10 @@ def initialize_particles_gaussian(
     cov = np.diag(np.asarray(std, dtype=float) ** 2)
     poses = rng.multivariate_normal(mean=mean_pose.astype(float), cov=cov, size=num_particles)
     weights = np.full(num_particles, 1.0 / num_particles, dtype=float)
-    return ParticleSet(Particle(pose=poses[i], weight=weights[i]) for i in range(num_particles))
+    return ParticleSet(
+        Particle(x=poses[i, 0], y=poses[i, 1], theta=poses[i, 2], weight=weights[i]) 
+        for i in range(num_particles)
+    )
 
 
 def init_particles_random(N: int, x_range: Tuple[float, float], y_range: Tuple[float, float]) -> ParticleSet:
@@ -169,5 +178,5 @@ def init_particles_random(N: int, x_range: Tuple[float, float], y_range: Tuple[f
         x = np.random.uniform(*x_range)
         y = np.random.uniform(*y_range)
         th = np.random.uniform(-np.pi, np.pi)
-        ps.append(Particle(np.array([x, y, th]), 1.0 / N))
+        ps.append(Particle(x=x, y=y, theta=th, weight=1.0 / N))
     return ParticleSet(ps)
