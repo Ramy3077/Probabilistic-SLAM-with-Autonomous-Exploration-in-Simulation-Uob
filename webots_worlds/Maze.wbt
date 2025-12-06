@@ -1,0 +1,737 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/apartment_structure/protos/Wall.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.6464013154045475 0.009855650167110406 -0.76293394576664 3.118324493119112
+  position -0.24316314204062173 -0.7656192432658199 13.175805063116428
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 10 11
+  wallHeight 0.5
+  wallAppearance BrushedAluminium {
+    IBLStrength 0
+  }
+}
+Robot {
+  translation -3.2861100246253323 -4.73404780820184 -0.026182280186708734
+  rotation 0 0 1 -3.14
+  children [
+    DEF body Pose {
+      translation 0 0 0.225
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0 0 1
+            roughness 1
+            metalness 0
+          }
+          geometry Cylinder {
+            height 0.4
+            radius 0.225
+          }
+        }
+      ]
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 319.95884783692907
+        anchor 0.225 0 0.125
+      }
+      device [
+        DEF motor_1 RotationalMotor {
+          name "motor_1"
+        }
+        DEF ps_1 PositionSensor {
+          name "ps_1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.225 0 0.125
+        rotation -8.771839759337983e-08 0.9999999999999923 -8.764857285678076e-08 1.5700000000000076
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
+          DEF wheel Shape {
+            appearance PBRAppearance {
+              baseColor 1 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Cylinder {
+              height 0.05
+              radius 0.125
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics DEF wheel_physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 319.9749420144033
+        anchor -0.225 0 0.125
+      }
+      device [
+        DEF motor_2 RotationalMotor {
+          name "motor_2"
+        }
+        DEF ps_2 PositionSensor {
+          name "ps_2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.225 0 0.125
+        rotation -1.2595047874811639e-07 0.9999999999999842 -1.2585022087933125e-07 1.5700000000000154
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
+          USE wheel
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics USE wheel_physics
+      }
+    }
+    Solid {
+      translation -2.03924e-08 -0.23 0.21
+      rotation 0 0 1 -1.5707953071795862
+      children [
+        DEF nose Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.015 0.075 0.05
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    Solid {
+      translation 0.025 -0.23 0.28
+      children [
+        DEF eye Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.025 0.025 0.025
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation -0.025 -0.23 0.28
+      children [
+        USE eye
+      ]
+      name "solid(4)"
+    }
+    Solid {
+      translation 0 0 0.44
+      children [
+        USE eye
+      ]
+      name "solid(5)"
+    }
+    Solid {
+      translation -0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(7)"
+    }
+    Solid {
+      translation 0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(6)"
+    }
+    Lidar {
+      translation 0 0 0.45
+      rotation 0 0 1 -1.5731853071795863
+      fieldOfView 6.28
+      numberOfLayers 1
+      maxRange 4
+    }
+  ]
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "robot_controller"
+}
+Solid {
+  children [
+    Wall {
+      translation -4.9 0 0
+      name "full_wall_back"
+      size 0.25 11 2
+    }
+    Wall {
+      translation -4.28 -4.9 0
+      rotation 0 0 1 1.5708
+      name "1/10_side_wall"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 4.5 5.36 0
+      rotation 0 0 1 1.5708
+      name "1/10_side_wall(1)"
+      size 0.25 2 2
+    }
+    Wall {
+      translation -1.54 5.39 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(1)"
+      size 0.25 8 2
+    }
+    Wall {
+      translation -0.82998 -5.15 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(5)"
+      size 0.25 8 2
+    }
+    Wall {
+      translation -1.25 4.14 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(2)"
+      size 0.25 5 2
+    }
+    Wall {
+      translation -1.13 2.9 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(3)"
+      size 0.25 2.8 2
+    }
+    Wall {
+      translation -0.79 0.9 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(4)"
+      size 0.25 2.1 2
+    }
+    Wall {
+      translation 4.9 0 0
+      name "full_wall_front"
+      size 0.25 11 2
+    }
+  ]
+}
+Solid {
+  children [
+    Wall {
+      translation -4.9 0 0
+      name "full_wall_back"
+      size 0.25 10 2
+    }
+    Wall {
+      translation -3.63 -3.23 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 2.36998 4.74002 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(15)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 3.60998 4.75002 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(16)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 0.139991 2.02 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(14)"
+      size 0.24 2 2
+    }
+    Wall {
+      translation -1.66001 -0.72 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(17)"
+      size 0.24 1.5 2
+    }
+    Wall {
+      translation -1.85 -2.62 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(3)"
+      size 0.25 3.8 2
+    }
+    Wall {
+      translation -2.74 -1.36 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(4)"
+      size 0.25 2 2
+    }
+    Wall {
+      translation 1.24 1.62 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(1)"
+      size 0.25 2 2
+    }
+    Wall {
+      translation 4.28 -1.36 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(12)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 0.64 -1.36 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(11)"
+      size 0.25 1.2 2
+    }
+    Wall {
+      translation 1.70999 0.410007 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(21)"
+      size 0.25 1.2 2
+    }
+    Wall {
+      translation -3.78 -0.130002 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(5)"
+      size 0.25 2 2
+    }
+    Wall {
+      translation -1.21 1.87001 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(18)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation -2.07 -0.089995 0
+      rotation 0 0 -1 1.57079
+      name "1/10_side_wall(22)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 1.14 0.150026 0
+      rotation 0 0 1 6.32203e-06
+      name "1/10_side_wall(19)"
+      size 0.25 0.8 2
+    }
+    Wall {
+      translation -3.63 2.53 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(2)"
+      size 0.25 3 2
+    }
+    Wall {
+      translation -2.65 1.41 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(20)"
+      size 0.25 3.3 2
+    }
+    Solid {
+      translation -1.76 3.6 -1.569599999999446e-05
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.25 0.25 0.5
+          }
+        }
+      ]
+      name "solid(2)"
+      boundingObject Box {
+        size 0.1 0.1 0.1
+      }
+      physics Physics {
+      }
+    }
+    Solid {
+      translation 2.95 3.54 -1.569599999999446e-05
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.25 0.25 0.5
+          }
+        }
+      ]
+      name "solid(1)"
+      boundingObject Box {
+        size 0.1 0.1 0.1
+      }
+      physics Physics {
+      }
+    }
+    Solid {
+      translation 4.25 -3.77 -1.569599999999446e-05
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.25 0.25 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+      boundingObject Box {
+        size 0.1 0.1 0.1
+      }
+      physics Physics {
+      }
+    }
+    Wall {
+      translation 1.11999 3.5 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(13)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation -2.58002 -4.27 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(6)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation -1.38002 -3.25 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(7)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation 1.10998 -2.48 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(10)"
+      size 0.25 2 2
+    }
+    Wall {
+      translation -0.13002 -4.27 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(8)"
+      size 0.25 1 2
+    }
+    Wall {
+      translation -0.0900428 -1.34 0
+      rotation 0 0 1 -3.1415853071795863
+      name "1/10_side_wall(9)"
+      size 0.25 2.3 2
+    }
+    Wall {
+      translation 0.98 -4.9 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall"
+      size 0.25 8 2
+    }
+    Wall {
+      translation 2.37 -3.61 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(2)"
+      size 0.25 2.8 2
+    }
+    Wall {
+      translation 2.37 2.88 0
+      rotation 0 0 1 1.5708
+      name "8/10_side_wall(3)"
+      size 0.25 2.8 2
+    }
+    Wall {
+      translation 4.9 0 0
+      name "full_wall_front"
+      size 0.25 10 2
+    }
+    Wall {
+      translation 3.66 -0.34 0
+      name "full_wall_front(1)"
+      size 0.25 6.7 2
+    }
+    Wall {
+      translation 2.36 -0.26 0
+      name "full_wall_front(2)"
+      size 0.25 4 2
+    }
+  ]
+  name "solid(1)"
+}
+Solid {
+  translation -2.62 -3.2 0.04960760005902243
+  rotation 0.231682670810139 0.15445511387343847 0.960451330284166 1.1040764679514152e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(2)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 2.807212194979726e-17 -2.1653561997343573e-18 -4.6224408833945417e-10
+  angularVelocity 0 -3.944304526105059e-31 1.677520928051806e-16
+}
+Solid {
+  translation 0.62 -4.23 0.049607600059022434
+  rotation 0.11714374274058509 -0.2342874854811398 -0.9650837879084139 7.278675437239697e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(3)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity -1.0666430840634609e-18 -7.872787418319574e-19 -4.6224408833944073e-10
+  angularVelocity -2.664535259100378e-16 0 -6.192186218292166e-17
+}
+Solid {
+  translation 0.62 -2.04 0.049607600059022434
+  rotation 0.18370123649077794 -0.1377759273680842 -0.9732788138810089 1.8566043412666958e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(4)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 2.058286468973951e-17 2.1955540341993354e-17 -4.6224408833949336e-10
+  angularVelocity -7.993605777301126e-16 0 -2.0355178295184054e-16
+}
+Solid {
+  translation -2.82 -0.62 0.04960760005902243
+  rotation -0.8292410443010515 0.4146205221505272 -0.3747654107013156 6.169385527442741e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(5)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 2.326399188375742e-17 -1.1319790583756262e-18 -4.622440883395344e-10
+  angularVelocity -2.664535259100378e-16 5.329070518200748e-16 1.3105463720532188e-16
+}
+Solid {
+  translation 1.84 -2.89 0.049607600059022434
+  rotation 0.11714374274058509 -0.2342874854811398 -0.9650837879084139 7.278675437239697e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(6)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity -1.0666430840634609e-18 -7.872787418319574e-19 -4.6224408833944073e-10
+  angularVelocity -2.664535259100378e-16 0 -6.192186218292166e-17
+}
+Solid {
+  translation 3.11 0.12 0.04960760005902244
+  rotation -0.699538129813051 -0.0874422662266358 -0.709225108844018 9.751019955295279e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(7)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity -9.15123377997851e-17 2.6830984276983988e-17 -4.6224403149608286e-10
+  angularVelocity -2.664535259100374e-16 -1.865174681370262e-15 -1.1201646749019775e-16
+}
+Solid {
+  translation 0.62 2.42 0.049607600059022434
+  rotation 0.11714374274058509 -0.2342874854811398 -0.9650837879084139 7.278675437239697e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(8)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity -1.0666430840634609e-18 -7.872787418319574e-19 -4.6224408833944073e-10
+  angularVelocity -2.664535259100378e-16 0 -6.192186218292166e-17
+}
+Solid {
+  translation 4.48 2.07 0.04960760005902243
+  rotation 0.231682670810139 0.15445511387343847 0.960451330284166 1.1040764679514152e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(9)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 2.807212194979726e-17 -2.1653561997343573e-18 -4.6224408833945417e-10
+  angularVelocity 0 -3.944304526105059e-31 1.677520928051806e-16
+}
+Solid {
+  translation 0.62 4.81 0.049607600059022434
+  rotation 0.11714374274058509 -0.2342874854811398 -0.9650837879084139 7.278675437239697e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(10)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity -1.0666430840634609e-18 -7.872787418319574e-19 -4.6224408833944073e-10
+  angularVelocity -2.664535259100378e-16 0 -6.192186218292166e-17
+}
+Solid {
+  translation -4.43 1.11 0.04960760005902243
+  rotation -0.8292410443010515 0.4146205221505272 -0.3747654107013156 6.169385527442741e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 1 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.25 0.25 0.5
+      }
+    }
+  ]
+  name "solid(11)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 2.326399188375742e-17 -1.1319790583756262e-18 -4.622440883395344e-10
+  angularVelocity -2.664535259100378e-16 5.329070518200748e-16 1.3105463720532188e-16
+}

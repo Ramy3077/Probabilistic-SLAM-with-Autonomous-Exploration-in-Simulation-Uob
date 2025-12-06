@@ -1,0 +1,358 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/BrushedAluminium.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/living_room_furniture/protos/Sofa.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/living_room_furniture/protos/Armchair.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/lights/protos/FloorLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/television/protos/Television.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/OfficeChair.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Desk.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/cabinet/protos/Cabinet.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/drinks/protos/Can.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/drinks/protos/WaterBottle.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/Chair.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/tables/protos/Table.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.10088472398461809 0.9832543043864889 -0.1517670760474404 1.1889200540417604
+  position -5.921212052131404 -0.833650589947907 14.056979966131513
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  rotation 0 0 1 1.57
+  floorSize 5 5
+  floorAppearance Parquetry {
+    type "dark strip"
+  }
+  wallHeight 2.2
+  wallAppearance BrushedAluminium {
+    IBLStrength 0
+  }
+}
+Robot {
+  rotation 0 0 1 1.5700000162708316
+  children [
+    DEF body Pose {
+      translation 0 0 0.225
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0 0 1
+            roughness 1
+            metalness 0
+          }
+          geometry Cylinder {
+            height 0.4
+            radius 0.225
+          }
+        }
+      ]
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 338.7413756035109
+        anchor 0.225 0 0.125
+      }
+      device [
+        DEF motor_1 RotationalMotor {
+          name "motor_1"
+        }
+        DEF ps_1 PositionSensor {
+          name "ps_1"
+        }
+      ]
+      endPoint Solid {
+        translation 0.225 0 0.125
+        rotation 0.03351574541438663 -0.9988769580038214 0.033489066549399656 4.712061634189223
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
+          DEF wheel Shape {
+            appearance PBRAppearance {
+              baseColor 1 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Cylinder {
+              height 0.05
+              radius 0.125
+            }
+          }
+        ]
+        boundingObject USE wheel
+        physics DEF wheel_physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 337.09975029686274
+        anchor -0.225 0 0.125
+      }
+      device [
+        DEF motor_2 RotationalMotor {
+          name "motor_2"
+        }
+        DEF ps_2 PositionSensor {
+          name "ps_2"
+        }
+      ]
+      endPoint Solid {
+        translation -0.225 0 0.125
+        rotation 0.6050803605610705 -0.5180136642945399 0.6045987106068196 4.098152212535974
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0 0 0
+              roughness 1
+              metalness 0
+            }
+            geometry Box {
+              size 0.025 0.025 0.052
+            }
+          }
+          USE wheel
+        ]
+        name "solid(1)"
+        boundingObject USE wheel
+        physics USE wheel_physics
+      }
+    }
+    Solid {
+      translation -2.03924e-08 -0.23 0.21
+      rotation 0 0 1 -1.5707953071795862
+      children [
+        DEF nose Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.015 0.075 0.05
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    Solid {
+      translation 0.025 -0.23 0.28
+      children [
+        DEF eye Shape {
+          appearance PBRAppearance {
+            baseColor 0 1 0
+            roughness 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.025 0.025 0.025
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation -0.025 -0.23 0.28
+      children [
+        USE eye
+      ]
+      name "solid(4)"
+    }
+    Solid {
+      translation 0 0 0.44
+      children [
+        USE eye
+      ]
+      name "solid(5)"
+    }
+    Solid {
+      translation -0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(7)"
+    }
+    Solid {
+      translation 0.25 0 0.15
+      children [
+        USE eye
+      ]
+      name "solid(6)"
+    }
+    Lidar {
+      translation 0 0 0.45
+      rotation 0 0 1 -1.5731853071795863
+      fieldOfView 6.28
+      numberOfLayers 1
+      maxRange 4
+    }
+  ]
+  boundingObject USE body
+  physics Physics {
+  }
+  controller "robot_controller"
+}
+Sofa {
+  translation -1.96 -0.27 0
+}
+Sofa {
+  translation -1.95 1.54 0
+  name "sofa(1)"
+}
+FloorLight {
+  translation 0.85 2.18 0
+}
+FloorLight {
+  translation 2.2 -0.97 0
+  name "floor light(1)"
+}
+FloorLight {
+  translation -2.14 -1.37 0
+  name "floor light(2)"
+}
+Television {
+  translation 2 3.18432e-07 0.83
+  rotation 0 0 1 3.14159
+}
+OfficeChair {
+  hidden position_0_0 -0.00011179188969379084
+  hidden rotation_1 0 0 -1 0.00011179188793588645
+  translation 1.790000001229979 1.4900000447092865 -0.0014153365753290237
+  rotation 0.0006975299840928753 -0.0007078906662571391 0.9999995061712411 1.5708004957778507
+}
+Desk {
+  translation 1.78 2.11606 0.0541565
+  rotation 2.3595499999880184e-06 2.1420999999891226e-06 -0.9999999999949221 1.5708
+}
+Armchair {
+  translation -4.58822e-07 1.98 0
+  rotation 0 0 1 -1.5707953071795862
+}
+Cabinet {
+  hidden position_6_0 2.560552674520581e-05
+  hidden translation_7 -5.095499821739161e-06 -6.523614981546189e-11 0
+  hidden rotation_7 0 0 1 2.5605519937906975e-05
+  hidden position_10_0 -2.1768550232605896e-05
+  hidden translation_11 -3.682150271554478e-06 4.007752463230929e-11 0
+  hidden rotation_11 0 0 -1 2.1768551450826625e-05
+  translation 2.09 -2.5 0
+  rotation 0 0 1 1.5708
+}
+Cabinet {
+  hidden position_6_0 2.5605526745227446e-05
+  hidden translation_7 -5.095499821743465e-06 -6.523614981546189e-11 0
+  hidden rotation_7 0 0 1 2.5605519937906975e-05
+  hidden position_10_0 -2.1768550232604223e-05
+  hidden translation_11 -3.682150271554195e-06 4.007752463230929e-11 0
+  hidden rotation_11 0 0 -1 2.1768551450826625e-05
+  hidden position_38_0 -0.0036848282691093483
+  hidden translation_39 -0.0036848282691093483 0 0
+  translation 1.3 -2.5 0
+  rotation 0 0 1 1.5708
+  name "cabinet(1)"
+}
+Can {
+  translation -1.37 -0.98 0.06096266
+  rotation -0.8369401147903525 -0.5444708108156875 -0.055522791936460876 2.8033415038629957e-16
+}
+Can {
+  hidden linearVelocity_0 0.00698215978273554 0.013159406615967876 5.633540507410496e-17
+  hidden angularVelocity_0 -0.4144694997155229 0.21991054433812646 -2.933929778315032e-16
+  translation 1.630318000996231 -0.16495207370292148 0.03147532
+  rotation 0.7690207567768583 0.10357501251107239 0.6307767373878647 2.29267587330229
+  name "can(4)"
+}
+Can {
+  translation -1.3 -1.06 0.06096266
+  rotation -0.8369401147903525 -0.5444708108156875 -0.055522791936460876 2.8033415038629957e-16
+  name "can(2)"
+}
+Can {
+  translation -0.79 2.24 0.06096266
+  rotation -0.8677525456121572 -0.2864788173788537 -0.40612240368740404 1.6486327782656061e-16
+  name "can(3)"
+}
+Can {
+  translation -0.63 2.16 0.060962659999999995
+  rotation -0.6499950242562255 0.6654560919052331 0.366980460226921 9.474826033784163e-17
+  name "can(1)"
+}
+WaterBottle {
+  translation -1.4271495640930432 -1.12 0.0013545240431418748
+  rotation 1.808555682137572e-15 1 -3.315313896511107e-15 0.11304887074119503
+}
+WaterBottle {
+  hidden linearVelocity_0 -0.000759118142379794 0.00891436579392377 -3.1658297068841087e-18
+  hidden angularVelocity_0 -0.20259905251522758 -0.01725267057114745 -0.0002634642481850849
+  translation 1.6051243394636832 -0.6947253876875065 0.04337324227089868
+  rotation 0.7005640737270619 0.10410128711177709 -0.7059553106426888 -3.053198387945337
+  name "water bottle(4)"
+}
+WaterBottle {
+  translation -0.67 2.28 -0.0023924000000000445
+  rotation -0.19235902963011756 -0.8798377707309365 0.4346072950549446 9.199067446084969e-17
+  name "water bottle(1)"
+}
+WaterBottle {
+  translation -0.8 2.37 -0.0023924000000000445
+  rotation -0.19235902963011756 -0.8798377707309365 0.4346072950549446 9.199067446084969e-17
+  name "water bottle(2)"
+}
+WaterBottle {
+  translation 1.14 1.71 -0.0023924000000000445
+  rotation -0.19235902963011756 -0.8798377707309365 0.4346072950549446 9.199067446084969e-17
+  name "water bottle(3)"
+}
+Solid {
+  translation 2.07 6.53060687304311e-19 0.049607599999999995
+  rotation -0.7678669062568301 0.42659272569823814 -0.4779111430558115 9.993739128070448e-17
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.5 1 1
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  linearVelocity 3.27296329883666e-17 -2.5150087587141337e-17 5.684341861799898e-17
+  angularVelocity 2.6645352591003623e-16 7.993605777301126e-16 -4.4641944034625493e-17
+}
+Chair {
+  translation 0.29 -1.15 0
+  rotation 0 0 1 -1.5707953071795862
+}
+Chair {
+  translation -0.369999 -1.17 0
+  rotation 0 0 1 -1.5707953071795862
+  name "chair(1)"
+}
+Table {
+  translation -0.149999 -1.97 0
+  rotation 0 0 1 -1.5707953071795862
+}
