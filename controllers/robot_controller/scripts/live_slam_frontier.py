@@ -9,18 +9,20 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Robot + SLAM imports
+# Robot + SLAM imports
 from robots.robot import MyRobot, Waypoint
 from slam.fastslam import FastSLAM, FastSLAMConfig
-from slam.occupancy import OccupancyGrid, GridSpec, LaserScan
+from slam.occupancy import OccupancyGrid, LaserScan
 from slam.visualize import plot_map
 from models.motion import sample_motion_simple
+from configs.config_loader import load_grid_spec
 
 # Exploration + control imports (YOUR modules)
 from control.waypoint_follow import GoToGoal
 from explore.frontiers import detect_frontiers
 from explore.planner import choose_frontier
 from explore.utils import ij_to_xy
-from eval.metrics import coverage_percent, entropy_proxy
+from eval.metrics import coverage_percent, entropy_proxy, explored_area_m2
 from eval.logger import CsvLogger
 
 
@@ -30,16 +32,8 @@ class FrontierExplorationSLAM:
         self.robot = MyRobot()
         self.waypoint = Waypoint(self.robot)  # we will only use set_velocity_vw()
 
-        # --- Occupancy grid (same spec as random script) ---
-        grid_spec = GridSpec(
-            resolution=0.05,   # 5cm
-            width=300,
-            height=300,
-            origin_x=-7.5,
-            origin_y=-7.5,
-            l_occ=0.85,
-            l_free=-0.4,
-        )
+        # --- Occupancy grid (loaded from config) ---
+        grid_spec = load_grid_spec()
         self.grid = OccupancyGrid(grid_spec)
 
         # --- FastSLAM config (same as random script) ---
@@ -188,7 +182,13 @@ class FrontierExplorationSLAM:
                 reached = True
 
             # 5) Metrics + logging
-            cov = coverage_percent(grid_codes)
+            # Calculate metrics using new signatures
+            cov = coverage_percent(
+                grid_codes, 
+                resolution=self.resolution, 
+                navigable_area_m2=self.slam.grid.spec.navigable_area
+            )
+            exp_m2 = (grid_codes != -1).sum() * (self.resolution ** 2)
             ent = entropy_proxy(grid_codes)
 
             self.logger.log(
@@ -201,6 +201,7 @@ class FrontierExplorationSLAM:
                 goal_y=goal_xy[1] if goal_xy else None,
                 num_frontiers=len(frontiers),
                 coverage_pct=cov,
+                explored_m2=exp_m2, # Log absolute area
                 entropy_proxy=ent,
                 strategy="frontier",
             )

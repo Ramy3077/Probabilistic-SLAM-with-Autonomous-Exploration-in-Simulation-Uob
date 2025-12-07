@@ -47,6 +47,9 @@ class GridSpec:
     l_min: float = -4.0
     l_max: float = 4.0
     l0: float = 0.0  # prior
+    
+    # Metrics
+    navigable_area: float = 0.0 # Expected navigable area in m^2 for coverage calc
 
 
 class OccupancyGrid:
