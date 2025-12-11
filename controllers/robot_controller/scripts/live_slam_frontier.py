@@ -61,7 +61,7 @@ class FrontierExplorationSLAM:
         self.resolution = grid_spec.resolution
         
         self.path_planner = AStarPlanner(
-            safety_distance=0.40,
+            safety_distance=0.28,
             allow_diagonal=True
         )
         

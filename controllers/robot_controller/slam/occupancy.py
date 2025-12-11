@@ -121,28 +121,27 @@ class OccupancyGrid:
 
     def get_trinary_map(self) -> np.ndarray:
         """
-        Converts the log-odds map into the {-1, 0, 1} format 
-        for the frontier planner (Bassel).
-        
-        Returns:
-            np.ndarray: Trinary map where:
-                -1 = FREE (navigable space)
-                 0 = UNKNOWN (unexplored)
-                 1 = OCCUPIED (obstacles)
-        """
-        # Define thresholds. You can tune these.
-        occupied_thresh = self.spec.l_occ  # e.g., 0.85
-        free_thresh = self.spec.l_free    # e.g., -0.4
+        Converts the log-odds map into the {-1, 0, 1} format for the frontier planner.
 
-        trinary_map = np.full(self.log_odds.shape, 0, dtype=np.int8)
-        
-        # Mark occupied cells as 1
-        trinary_map[self.log_odds > occupied_thresh] = 1
-        
-        # Mark free cells as -1
-        trinary_map[self.log_odds < free_thresh] = -1
-        
-        return trinary_map
+            -1 = UNKNOWN
+             0 = FREE
+             1 = OCCUPIED
+        """
+        occupied_thresh = self.spec.l_occ
+        free_thresh = self.spec.l_free
+
+        # Start with UNKNOWN everywhere
+        trinary = np.full(self.log_odds.shape, -1, dtype=np.int8)
+
+        # FREE: values below free threshold
+        trinary[self.log_odds < free_thresh] = 0
+
+        # OCCUPIED: values above occupied threshold
+        trinary[self.log_odds > occupied_thresh] = 1
+
+        return trinary
+
+
 
         
 # --- Helper functions ---

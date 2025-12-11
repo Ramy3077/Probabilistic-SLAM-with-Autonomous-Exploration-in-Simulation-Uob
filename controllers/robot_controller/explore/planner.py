@@ -127,52 +127,64 @@ def choose_frontier(
     # Iterate through the selected best candidates
     for _, f, target_node, cx, cy in top_candidates:
         
-        # If centroid is not valid, try to find a valid point in the cluster
-        if not planner._is_valid(target_node, grid):
-            found_valid = False
-            for cell in f.cells:
-                if planner._is_valid(cell, grid):
-                    target_node = cell
-                    found_valid = True
-                    break
-            if not found_valid:
-                continue # Skip this frontier if no reachable cells
+            # Fallback Logic: Try nominal safety, then reduced safety
+            # If default is 0.4, try 0.4 then 0.2.
+            # If default is 0.25 (tuned), try 0.25 then 0.15.
+            safety_levels = [planner.safety_distance]
+            if planner.safety_distance > 0.15:
+                safety_levels.append(0.15)
+            
+            for safety_dist in safety_levels:
+                 # Check if centroid is valid with this safety
+                margin_cells = int(np.ceil(safety_dist / resolution))
+                current_target_node = target_node
+                
+                # If centroid invalid, search cluster for valid point
+                if not planner._is_valid(current_target_node, grid, margin_cells):
+                    found_valid = False
+                    for cell in f.cells:
+                        if planner._is_valid(cell, grid, margin_cells):
+                            current_target_node = cell
+                            found_valid = True
+                            break
+                    if not found_valid:
+                        continue # Skip this level, try next safety level or next frontier
+                
+                # Plan path with this safety
+                path_ij = planner._search(start_node, current_target_node, grid, resolution, safety_distance=safety_dist)
+                
+                if path_ij is not None:
+                     # Calculate cost
+                    cost = 0.0
+                    for k in range(len(path_ij)-1):
+                        p1 = path_ij[k]
+                        p2 = path_ij[k+1]
+                        dist = np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2) * resolution
+                        cost += dist
+                        
+                    score = (beta * f.size) - (alpha * cost)
+                    
+                    # Hysteresis
+                    if current_target_xy is not None:
+                         # Use original centroid for hysteresis check to be consistent
+                         dist_to_curr = np.hypot(cx - current_target_xy[0], cy - current_target_xy[1])
+                         if dist_to_curr < 1.0: 
+                             score += hysteresis_bonus
 
-        # Plan path on grid
-        path_ij = planner._search(start_node, target_node, grid, resolution)
-        
-        if path_ij is None:
-            continue # Unreachable
-            
-        # Calculate path length (cost)
-        cost = 0.0
-        for k in range(len(path_ij)-1):
-            p1 = path_ij[k]
-            p2 = path_ij[k+1]
-            dist = np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2) * resolution
-            cost += dist
-            
-        score = (beta * f.size) - (alpha * cost)
-        
-        # Hysteresis: If this frontier is close to our current target, boost it
-        if current_target_xy is not None:
-            # Convert grid centroid back to world for comparison? 
-            # Actually easier to convert current_target_xy to grid, or f.centroid to world.
-            # f.centroid is (r, c) float.
-            # Let's verify frontier.centroid format. typically (r, c).
-            # Let's convert f.centroid to world to compare with current_target_xy
-            
-            dist_to_curr = np.hypot(cx - current_target_xy[0], cy - current_target_xy[1])
-            if dist_to_curr < 1.0: # 1 meter tolerance
-                score += hysteresis_bonus
-        
-        if score > best_score:
-            best_score = score
-            best_frontier = f
-            # Convert grid path to world path
-            best_path_xy = [
-                planner._grid_to_world(ij, origin_xy, resolution)
-                for ij in path_ij
-            ]
+                    # Penalty for reduced safety (discourage risky paths if safe ones exist)
+                    if safety_dist < planner.safety_distance:
+                        score -= 50.0 # Significant penalty
+
+                    if score > best_score:
+                        best_score = score
+                        best_frontier = f
+                        best_path_xy = [
+                            planner._grid_to_world(ij, origin_xy, resolution)
+                            for ij in path_ij
+                        ]
+                    # If we found a path for this frontier, stop checking lower safety levels for *this* frontier.
+                    # We want the safest path for this specific frontier.
+                    # Comparing across frontiers: cost penalty handles preference.
+                    break
 
     return best_frontier, best_path_xy

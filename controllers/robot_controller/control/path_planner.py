@@ -84,7 +84,8 @@ class AStarPlanner:
         goal_xy: Tuple[float, float],
         grid: np.ndarray,
         resolution: float,
-        origin_xy: Tuple[float, float]
+        origin_xy: Tuple[float, float],
+        safety_distance: Optional[float] = None
     ) -> Optional[List[Tuple[float, float]]]:
         """
         Plan a path from start to goal using A*.
@@ -141,7 +142,8 @@ class AStarPlanner:
             return None
         
         # Run A* search
-        path_ij = self._search(start_ij, goal_ij, grid, resolution)
+        curr_safety = safety_distance if safety_distance is not None else self.safety_distance
+        path_ij = self._search(start_ij, goal_ij, grid, resolution, curr_safety)
         
         if path_ij is None:
             return None
@@ -162,7 +164,8 @@ class AStarPlanner:
         start: Tuple[int, int],
         goal: Tuple[int, int],
         grid: np.ndarray,
-        resolution: float
+        resolution: float,
+        safety_distance: float
     ) -> Optional[List[Tuple[int, int]]]:
         """
         A* search algorithm in grid space.
@@ -176,6 +179,8 @@ class AStarPlanner:
         closed_set = set()
         
         # Create start node
+        # Create start node
+        margin_cells = int(np.ceil(safety_distance / resolution))
         h_start = self._heuristic(start, goal, resolution)
         start_node = Node(f=h_start, g=0.0, h=h_start, pos=start, parent=None)
         heapq.heappush(open_set, start_node)
@@ -205,7 +210,7 @@ class AStarPlanner:
                 neighbor_pos = (current.pos[0] + di, current.pos[1] + dj)
                 
                 # Check validity
-                if not self._is_valid(neighbor_pos, grid):
+                if not self._is_valid(neighbor_pos, grid, margin_cells):
                     continue
                 
                 if neighbor_pos in closed_set:
@@ -240,7 +245,7 @@ class AStarPlanner:
         # No path found
         return None
     
-    def _is_valid(self, pos: Tuple[int, int], grid: np.ndarray) -> bool:
+    def _is_valid(self, pos: Tuple[int, int], grid: np.ndarray, margin_cells: int = 0) -> bool:
         """
         Check if a grid cell is valid for navigation.
         
@@ -264,10 +269,9 @@ class AStarPlanner:
             return False
         
         # Safety margin check: ensure no obstacles nearby
-        # This prevents robot from getting too close to walls
-        # (Disabled for now - can be enabled for extra safety)
-        # if not self._check_safety_margin(pos, grid):
-        #     return False
+        if margin_cells > 0:
+            if not self._check_safety_margin(pos, grid, margin_cells):
+                return False
         
         return True
     
