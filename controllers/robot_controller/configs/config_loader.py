@@ -1,7 +1,7 @@
 import yaml
 import os
 from pathlib import Path
-from ..slam.occupancy import GridSpec
+from slam.occupancy import GridSpec
 
 def load_grid_spec(world_name=None):
     """

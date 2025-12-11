@@ -1,7 +1,7 @@
 # Visualization utilities for SLAM debugging and validation using Matplotlib
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,6 +14,7 @@ def plot_map(
     pose: Optional[Pose] = None,
     particles: Optional[ParticleSet] = None,
     scan: Optional[LaserScan] = None,
+    path: Optional[List[Tuple[float, float]]] = None,
     title: str = "SLAM Map",
     output_path: Optional[str] = None,
     show_particles: bool = True,
@@ -21,11 +22,12 @@ def plot_map(
     scale: int = 10,  # Unused in matplotlib version but kept for API compatibility
 ) -> None:
     """
-    Visualize occupancy grid with robot pose, particles, and laser scan using Matplotlib.
+    Visualize occupancy grid with robot pose, particles, laser scan, and planned path using Matplotlib.
     Style matches Swepz/LidarBasedGridMapping:
     - Map: gray_r colormap (Dark=Occupied, Light=Free)
     - Robot: Red dot
     - Laser: Blue lines
+    - Path: Green line
     """
     
     # Get probability map
@@ -94,6 +96,14 @@ def plot_map(
         arrow_len = 0.3  # meters
         ax.arrow(x, y, arrow_len * np.cos(theta), arrow_len * np.sin(theta), 
                  head_width=0.1, head_length=0.1, fc='red', ec='red', zorder=10)
+
+    # Plot Planned Path
+    if path is not None and len(path) > 1:
+        # Unzip x, y
+        px = [p[0] for p in path]
+        py = [p[1] for p in path]
+        ax.plot(px, py, 'g-', linewidth=2, alpha=0.8, label='Plan', zorder=5)
+        ax.scatter(px, py, c='green', s=10, zorder=5) # waypoints
 
     ax.set_title(title)
     ax.set_xlabel("X (m)")

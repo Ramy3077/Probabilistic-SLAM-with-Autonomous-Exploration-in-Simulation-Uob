@@ -6,8 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from robots.robot import MyRobot, Movement, OdomTest, Waypoint
-from scripts.live_slam_random import main as slam_main
-#from scripts.live_slam_frontier import main as slam_main
+#from scripts.live_slam_random import main as slam_main
+from scripts.live_slam_frontier import main as slam_main
 
 TIMESTEP = 64
 

@@ -23,6 +23,7 @@ class CsvLogger:
                 "goal_y",
                 "num_frontiers",
                 "coverage_pct",
+                "explored_m2",
                 "entropy_proxy",
                 "strategy",
             ],

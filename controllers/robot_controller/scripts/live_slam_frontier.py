@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Live SLAM with FRONTIER-based exploration in Webots
+# Live SLAM with SMART FRONTIER exploration (Simplified: No complex trap recovery)
 
 import sys
 from pathlib import Path
@@ -9,20 +9,18 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Robot + SLAM imports
-# Robot + SLAM imports
 from robots.robot import MyRobot, Waypoint
-from slam.fastslam import FastSLAM, FastSLAMConfig
-from slam.occupancy import OccupancyGrid, LaserScan
+from slam.fastslam import ParticleFilterSLAM as FastSLAM, FastSLAMConfig
+from slam.occupancy import OccupancyGrid, GridSpec, LaserScan
 from slam.visualize import plot_map
 from models.motion import sample_motion_simple
-from configs.config_loader import load_grid_spec
 
-# Exploration + control imports (YOUR modules)
+# Exploration + control imports
 from control.waypoint_follow import GoToGoal
-from explore.frontiers import detect_frontiers
+from control.path_planner import AStarPlanner, simplify_path
+from explore.frontiers import detect_frontiers, cluster_frontiers
 from explore.planner import choose_frontier
-from explore.utils import ij_to_xy
-from eval.metrics import coverage_percent, entropy_proxy, explored_area_m2
+from eval.metrics import coverage_percent, entropy_proxy
 from eval.logger import CsvLogger
 
 
@@ -30,13 +28,21 @@ class FrontierExplorationSLAM:
     def __init__(self):
         # --- Webots robot wrapper ---
         self.robot = MyRobot()
-        self.waypoint = Waypoint(self.robot)  # we will only use set_velocity_vw()
+        self.waypoint = Waypoint(self.robot)
 
         # --- Occupancy grid (loaded from config) ---
-        grid_spec = load_grid_spec()
+        grid_spec = GridSpec(
+            resolution=0.05,     # 5cm resolution
+            width=400,           # 400 cells × 0.05m = 20m
+            height=400,          # 400 cells × 0.05m = 20m
+            origin_x=-10.0,      # Center the 20m grid
+            origin_y=-10.0,
+            l_occ=0.85,
+            l_free=-0.4,
+        )
         self.grid = OccupancyGrid(grid_spec)
 
-        # --- FastSLAM config (same as random script) ---
+        # --- FastSLAM config ---
         init_pose = np.array([0.0, 0.0, 0.0], dtype=float)
         config = FastSLAMConfig(
             num_particles=50,
@@ -50,56 +56,60 @@ class FrontierExplorationSLAM:
             config=config,
         )
 
-        # --- Frontier planner + controller state ---
-        self.goto_goal = GoToGoal()
+        # --- Navigation & Planning ---
         self.origin_xy = (grid_spec.origin_x, grid_spec.origin_y)
         self.resolution = grid_spec.resolution
-
+        
+        self.path_planner = AStarPlanner(
+            safety_distance=0.40,
+            allow_diagonal=True
+        )
+        
+        # Controller
+        self.goto_goal = GoToGoal(v_max=0.25, w_max=2.0)
+        
+        # State
+        self.current_path = [] # List of (x,y) world waypoints
+        self.current_target_frontier = None 
+        self.blacklist = [] 
+        self.planning_fail_cooldown = 0
+        self.stuck_counter = 0  # Counter for safety stop duration
+        self.backup_counter = 0 # Simple backup maneuver state
+        self.turn_counter = 0   # Turn after backup state
+        self.consecutive_planning_failures = 0 # Track failures to clear blacklist
+        
         # --- Logging for evaluation ---
         self.logger = CsvLogger("eval_logs/live_frontier.csv")
-
         self.step_count = 0
         self.output_dir = Path("eval_logs/live_slam_frontier")
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Clear old PNGs
         for old in self.output_dir.glob("*.png"):
             old.unlink()
-
-        print("✅ Initialized FRONTIER exploration SLAM")
+        
+        print("✅ Initialized SMART FRONTIER exploration (Simplified Mode)")
         print(f"Grid: {grid_spec.width}x{grid_spec.height} @ {grid_spec.resolution} m")
-        print(f"Particles: {config.num_particles}")
-        print(f"Log file: eval_logs/live_frontier.csv")
 
     # ---------- helpers ----------
 
     def _grid_codes(self) -> np.ndarray:
-        """
-        Convert log-odds grid → integer codes {-1: unknown, 0: free, 1: occupied}
-        so it can be consumed by frontier + metrics modules.
-        """
         lo = self.slam.grid.log_odds
-        codes = np.full(lo.shape, -1, dtype=int)   # unknown by default
-        codes[lo > 0.0] = 1                        # occupied
-        codes[lo < 0.0] = 0                        # free
+        codes = np.zeros(lo.shape, dtype=int)
+        codes[lo < 0.0] = -1
+        codes[lo > 0.0] = 1
         return codes
 
     def _front_obstacle_min(self, ranges: np.ndarray) -> float | None:
-        """
-        Minimal distance in a front sector of the LiDAR.
-        Used as obstacle_min for GoToGoal.
-        """
         if ranges.size == 0:
             return None
-
         num_beams = ranges.size
         center = num_beams // 2
         front_sector = num_beams // 6  # ±30°
-
+        
         start = max(0, center - front_sector)
         end = min(num_beams, center + front_sector)
         front = ranges[start:end]
-
+        
         valid = front[np.isfinite(front) & (front > 0.01)]
         if valid.size == 0:
             return None
@@ -108,25 +118,21 @@ class FrontierExplorationSLAM:
     # ---------- main loop ----------
 
     def run(self, max_steps: int = 5000, viz_every: int = 50):
-        print("\n🚀 Starting FRONTIER exploration...")
-        dt = self.robot.timestep / 1000.0  # 64 ms → 0.064 s
+        print("\n🚀 Starting SMART FRONTIER exploration...")
+        dt = self.robot.timestep / 1000.0
 
-        # --- Warmup sensors ---
         print("⏳ Warming up sensors...")
         for _ in range(20):
             self.robot.robot.step(self.robot.timestep)
 
-        # --- Wait for first valid LiDAR scan ---
         print("⏳ Waiting for valid LiDAR data...")
         while self.robot.robot.step(self.robot.timestep) != -1:
             packet = self.robot.create_sensor_packet(dt)
             ranges = np.array(packet["lidar"]["ranges"], dtype=float)
-            if ranges.size > 0:
-                finite = np.isfinite(ranges)
-                print(f"✅ LiDAR ready: {finite.sum()}/{ranges.size} finite beams")
+            if ranges.size > 0 and np.isfinite(ranges).sum() > 0:
+                print("✅ LiDAR ready")
                 break
 
-        # --- Main control loop ---
         while (
             self.robot.robot.step(self.robot.timestep) != -1
             and self.step_count < max_steps
@@ -144,76 +150,170 @@ class FrontierExplorationSLAM:
                 angle_min=lidar["angle_min"],
                 angle_inc=lidar["angle_increment"],
                 range_min=0.1,
-                range_max=2.0,
+                range_max=4.0, 
             )
             pose = self.slam.step(control=control, dt=dt, scan=scan)
             x, y, theta = pose
+            pose_ij = self.slam.grid.world_to_grid(x, y)
 
-            # 3) Frontier detection on current map
+            # --- Recovery Maneuvers ---
+            # Priority 1: Backup
+            if self.backup_counter > 0:
+                self.backup_counter -= 1
+                self.waypoint.set_velocity_vw(-0.15, 0.0)
+                self.current_path = [] # Clear path
+                self.stuck_counter = 0
+                self.step_count += 1
+                
+                # Transition to turn when done
+                if self.backup_counter == 0:
+                     self.turn_counter = 30 # Turn for ~1s
+                
+                continue
+            
+            # Priority 2: Turn (Re-orient)
+            if self.turn_counter > 0:
+                self.turn_counter -= 1
+                # Spin left or right? Let's just spin left.
+                self.waypoint.set_velocity_vw(0.0, 1.0)
+                self.current_path = []
+                self.stuck_counter = 0
+                self.step_count += 1
+                continue
+
+            # 3) Replanning Logic
             grid_codes = self._grid_codes()
-            pose_i, pose_j = self.slam.grid.world_to_grid(x, y)
-            frontiers = detect_frontiers(grid_codes)
-            goal_ij = choose_frontier(frontiers, (pose_i, pose_j))
+            
+            if self.planning_fail_cooldown > 0:
+                self.planning_fail_cooldown -= 1
+            
+            elif not self.current_path or (self.step_count % 100 == 0):
+                # Detect
+                frontiers = detect_frontiers(grid_codes, unknown_val=0, free_val=-1)
+                clusters = cluster_frontiers(frontiers)
+                
+                curr_target_centroid = None
+                if self.current_target_frontier:
+                    c = self.current_target_frontier.centroid
+                    cx = self.origin_xy[0] + c[1] * self.resolution
+                    cy = self.origin_xy[1] + c[0] * self.resolution
+                    curr_target_centroid = (cx, cy)
 
-            if goal_ij is not None:
-                goal_xy = ij_to_xy(
-                    goal_ij[0],
-                    goal_ij[1],
-                    origin_xy=self.origin_xy,
-                    resolution=self.resolution,
+                # Select & Plan
+                selected_frontier, new_path = choose_frontier(
+                    clusters,
+                    pose_ij,
+                    grid_codes,
+                    self.resolution,
+                    self.origin_xy,
+                    self.path_planner,
+                    current_target_xy=curr_target_centroid,
+                    blacklist=self.blacklist
                 )
-            else:
-                goal_xy = None
+                
+                if new_path is not None:
+                    self.current_path = simplify_path(new_path, tolerance=0.1)
+                    self.current_target_frontier = selected_frontier
+                    print(f"✅ New plan to frontier: {len(new_path)} nodes")
+                    
+                    if self.current_path:
+                        start_node = self.current_path[0]
+                        dist_to_start = np.hypot(start_node[0]-x, start_node[1]-y)
+                        if dist_to_start < 0.30: 
+                            self.current_path.pop(0)
+                    
+                    self.stuck_counter = 0 # Reset stuck counter on new plan
+                    self.consecutive_planning_failures = 0 # Reset failure counter
+                else:
+                    self.planning_fail_cooldown = 20
+                    self.consecutive_planning_failures += 1
+                    
+                    if self.step_count % 50 == 0:
+                        print("⚠️ No reachable frontier found. Planning cooled down.")
+                    
+                    # Desperation Mode: If we fail too many times, clear blacklist AND move
+                    if self.consecutive_planning_failures > 3:
+                        print("⚠️ Stagnation detected (3+ failures). Clearing blacklist & Forcing Turn.")
+                        self.blacklist = []
+                        self.consecutive_planning_failures = 0
+                        self.turn_counter = 45 # Force a move to break the loop
 
-            # 4) Go-to-goal controller
+            # 4) Path Following Control
             obstacle_min = self._front_obstacle_min(lidar_ranges)
-
-            if goal_xy is not None:
-                v, w, reached = self.goto_goal.step(
+            
+            if self.current_path:
+                target_wp = self.current_path[0]
+                
+                v, w, reached_wp = self.goto_goal.step(
                     (x, y, theta),
-                    goal_xy,
-                    obstacle_min=obstacle_min,
+                    target_wp,
+                    obstacle_min=obstacle_min
                 )
-                # convert (v, w) → wheel speeds using your existing helper
+                
+                # Check STUCK condition (Safety Stop Triggered)
+                # If v is 0 because of obstacle, but we haven't reached goal
+                if v == 0.0 and obstacle_min is not None and obstacle_min < self.goto_goal.stop_dist:
+                    self.stuck_counter += 1
+                else:
+                    self.stuck_counter = max(0, self.stuck_counter - 1) # Decay if moving
+
+                # If stuck too long, blacklist, backup and replan
+                if self.stuck_counter > 10: # ~0.3s - 0.5s
+                    print(f"🛑 STUCK at obstacle ({obstacle_min:.2f}m). Starting Recovery (Backup+Turn).")
+                    if self.current_target_frontier:
+                        c = self.current_target_frontier.centroid
+                        cx = self.origin_xy[0] + c[1] * self.resolution
+                        cy = self.origin_xy[1] + c[0] * self.resolution
+                        self.blacklist.append((cx, cy))
+                    
+                    self.current_path = [] # Force replan check next step
+                    self.current_target_frontier = None
+                    self.stuck_counter = 0
+                    self.planning_fail_cooldown = 0
+                    self.backup_counter = 60 # Reverse for 60 steps (~2s)
+                
+                # Check distance to waypoint to pop
+                dist_to_wp = np.hypot(target_wp[0]-x, target_wp[1]-y)
+                if dist_to_wp < 0.15: 
+                    self.current_path.pop(0) 
+                
                 self.waypoint.set_velocity_vw(v, w)
             else:
-                # No frontier: stop (or you could fall back to a tiny random motion)
                 self.waypoint.set_velocity_vw(0.0, 0.0)
-                reached = True
 
             # 5) Metrics + logging
-            # Calculate metrics using new signatures
             cov = coverage_percent(
                 grid_codes, 
                 resolution=self.resolution, 
-                navigable_area_m2=self.slam.grid.spec.navigable_area
+                navigable_area_m2=self.slam.grid.spec.navigable_area,
+                unknown_val=0 
             )
-            exp_m2 = (grid_codes != -1).sum() * (self.resolution ** 2)
-            ent = entropy_proxy(grid_codes)
+            exp_area = (grid_codes != 0).sum() * (self.resolution ** 2) 
+            ent = entropy_proxy(grid_codes, unknown_val=0)
 
             self.logger.log(
-                pose_x=x,
-                pose_y=y,
-                pose_theta=theta,
-                chosen_frontier_i=goal_ij[0] if goal_ij else None,
-                chosen_frontier_j=goal_ij[1] if goal_ij else None,
-                goal_x=goal_xy[0] if goal_xy else None,
-                goal_y=goal_xy[1] if goal_xy else None,
-                num_frontiers=len(frontiers),
+                pose_x=x, pose_y=y, pose_theta=theta,
+                chosen_frontier_i=None, 
+                chosen_frontier_j=None, 
+                goal_x=self.current_path[-1][0] if self.current_path else None,
+                goal_y=self.current_path[-1][1] if self.current_path else None,
+                num_frontiers=len(frontiers) if 'frontiers' in locals() else 0,
                 coverage_pct=cov,
-                explored_m2=exp_m2, # Log absolute area
+                explored_m2=exp_area,
                 entropy_proxy=ent,
-                strategy="frontier",
+                strategy="smart_frontier_simple",
             )
 
-            # 6) Console debug every few steps
-            if self.step_count % 10 == 0:
+            # 6) Console debug
+            if self.step_count % 20 == 0:
+                n_clusters = len(clusters) if 'clusters' in locals() else 0
+                path_len = len(self.current_path)
                 print(
                     f"[step {self.step_count:04d}] "
-                    f"pose=({x:5.2f},{y:5.2f},{theta:5.2f})  "
-                    f"frontiers={len(frontiers):3d}  "
-                    f"cov={cov:5.2f}%  ent={ent:4.2f}  "
-                    f"goal={goal_xy}"
+                    f"pose=({x:.2f},{y:.2f}) "
+                    f"clusters={n_clusters} "
+                    f"path_nodes={path_len} "
+                    f"cov={cov:.1f}%"
                 )
 
             # 7) Map visualisation
@@ -224,46 +324,25 @@ class FrontierExplorationSLAM:
                     pose=pose,
                     particles=self.slam.particles,
                     scan=scan,
-                    title=f"Frontier Exploration - Step {self.step_count}",
+                    title=f"Smart Frontier (Simple) - Step {self.step_count}",
                     output_path=str(out),
                     show_particles=True,
-                    show_scan=True,
-                    scale=5,
+                    show_scan=True,      
+                    scale=5,            
                 )
 
             self.step_count += 1
 
-        # --- Final visualisation + summary ---
-        final_pose = self.slam.best_pose()
-        final_path = self.output_dir / "frontier_final.png"
-        plot_map(
-            grid=self.slam.grid,
-            pose=final_pose,
-            particles=self.slam.particles,
-            scan=None,
-            title=f"Frontier Final Map - {self.step_count} steps",
-            output_path=str(final_path),
-            show_particles=True,
-            show_scan=False,
-            scale=10,
-        )
+        print("\n✅ Exploration complete")
         self.logger.close()
-
-        print("\n✅ Frontier exploration complete")
-        print(f"   Steps: {self.step_count}")
-        print(f"   Final pose: ({final_pose[0]:.2f}, {final_pose[1]:.2f}, {final_pose[2]:.2f})")
-        print("   Logs: eval_logs/live_frontier.csv")
-        print(f"   Figures: {self.output_dir}")
 
 
 def main():
     print("=" * 60)
-    print("  LIVE SLAM WITH FRONTIER-BASED EXPLORATION")
+    print("  LIVE SLAM WITH SIMPLE FRONTIER EXPLORATION")
     print("=" * 60)
     explorer = FrontierExplorationSLAM()
     explorer.run(max_steps=5000, viz_every=50)
-    print("\n✨ Done! Check eval_logs/live_frontier.csv and eval_logs/live_slam_frontier/.")
-
 
 if __name__ == "__main__":
     main()
