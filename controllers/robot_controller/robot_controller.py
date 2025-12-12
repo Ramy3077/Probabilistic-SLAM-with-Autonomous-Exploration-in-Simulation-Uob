@@ -7,13 +7,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from robots.robot import MyRobot, Movement, OdomTest, Waypoint
 #from scripts.live_slam_random import main as slam_main
-from scripts.live_slam_frontier import main as slam_main
+#from scripts.live_slam_frontier import main as slam_main
+from scripts.benchmark_exploration import main as slam_main
 
 TIMESTEP = 64
 
 if __name__ == "__main__":
     # === SLAM MODE (Default) ===
-    print("🚀 Starting live SLAM with random exploration...")
+    print("🚀 Starting Controller...")
     # This runs the SLAM loop which handles its own robot instance and stepping
     slam_main()
 

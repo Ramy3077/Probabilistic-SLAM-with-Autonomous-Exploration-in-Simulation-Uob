@@ -1,66 +1,79 @@
-Project Proposal: Probabilistic SLAM with Autonomous Exploration in Simulation
+# Probabilistic SLAM with Autonomous Exploration in Simulation
 
-Robots crave to know where they are and what surrounds them. Simultaneous Localisation and
-Mapping (SLAM) solves exactly that puzzle. Our project dives into this essential challenge:
-constructing a map of an unfamiliar environment while tracking the robot’s position within it. This
-project will target a wheeled robot in simulation, creating an approachable and powerful framework
-for intelligent, autonomous behaviour.
+## Overview
+This project implements a complete **Simultaneous Localisation and Mapping (SLAM)** system from scratch in Python, deployed on a simulated differential-drive robot in **Webots**. 
 
-Our plan is to implement a particle-filter-based SLAM system in Python, inspired by FastSLAM. The
-robot will rely on noisy but realistic inputs from wheel odometry and a LiDAR scanner. We will design
-motion and measurement models that update both the robot’s estimated position and its
-occupancy-grid map as it moves. Each step brings more information and less uncertainty, allowing
-the robot to gradually understand its world.
+The goal is to enable a robot to map an unknown environment using a **Particle Filter (FastSLAM)** and compare two exploration strategies:
+1.  **Frontier-Based Exploration**: Autonomous decision-making to target boundaries between known and unknown space.
+2.  **Random Exploration**: A baseline reactive random-walk strategy.
 
-The standout feature of our project lives in how the robot explores. Not satisfied with wandering
-aimlessly, the robot will use frontier exploration. The algorithm seeks out the edges between known
-and unknown space, actively reducing map uncertainty and discovering new territory in an efficient,
-goal-driven manner.
+## Authorship & Roles
+* **Ramy Mekhzer**: SLAM Core (Particle Filter, Motion/Measurement Models), Step-Window Inverse Sensor Model.
+* **Bassel Kenaan**: Exploration Strategies (Frontier Detection, Clustering, Path Planning Integration), Evaluation Metrics.
+* **Sahib Singh**: Robot Control Interface (Velocity Controllers, Webots Sensor Handling), Motion Primitives.
 
-We will evaluate two exploration behaviours:
-• Random exploration
-• Uncertainty-driven frontier exploration
+## Dependencies & Requirements
+*   **Simulator**: [Webots R2023b](https://cyberbotics.com/) (or newer)
+*   **Language**: Python 3.8+
+*   **External Packages**:
+    *   `numpy` (Matrix operations, particle handling)
+    *   `scipy` (Optional, mostly for specific helper functions if used)
+    *   `matplotlib` (For live visualization and plot generation)
 
-These will be compared using metrics such as mapping accuracy, environment coverage and
-localisation error across different test layouts. Data provided by the simulator will allow precise
-performance analysis.
+## Installation
+1.  Clone this repository:
+    ```bash
+    git clone https://github.com/YourUsername/RoboticsProject.git
+    cd RoboticsProject
+    ```
+2.  Install python dependencies:
+    ```bash
+    pip install numpy matplotlib
+    ```
 
-Team Roles:
+## Usage
+1.  Open the world file in Webots:
+    *   `webots_worlds/Week3_Hexagon.wbt` (or similar)
+2.  The robot controller is set to `robot_controller`.
+3.  To run the **Frontier Exploration** (Main Agent):
+    *   Ensure the controller script points to `live_slam_frontier.py`.
+    *   Start the simulation in Webots.
+    *   The robot will undock, spin to initialize LiDAR, and begin mapping.
+4.  To run the **Random Baseline**:
+    *   Ensure the controller script points to `live_slam_random.py` 
 
-Sahib – Robot control and sensor integration (wheel odometry, LiDAR interface, motion model)
+## Code Structure
+*   `controllers/robot_controller/`
+    *   `scripts/`: Executable scripts (e.g., `live_slam_frontier.py`).
+    *   `slam/`: Core SLAM logic.
+        *   `fastslam.py`: Particle Filter implementation.
+        *   `occupancy.py`: Grid mapping and Inverse Sensor Model.
+        *   `motion.py`: Probabilistic motion models.
+    *   `explore/`: Exploration behaviors.
+        *   `frontiers.py`: Frontier detection algorithms.
+        *   `planner.py`: High-level target selection.
+    *   `control/`: Low-level robot movement (PID, waypoint following).
+    *   `models/`: Sensor and Actuator models.
 
-Ramy – SLAM implementation: particle filter, map update logic, handling uncertainty.
+## Implementation Attribution
+To comply with coursework requirements, we explicitly state the source of each component:
 
-Bassel – Exploration strategy, frontier detection, data logging and evaluation
+### Self-Implemented
+*   **Core Systems**:
+    *   `robot_controller.py`: Main state machine and controller logic.
+    *   `slam/occupancy.py`: Custom **Step-Window Inverse Sensor Model** and grid data structure.
+    *   `slam/fastslam.py`: Particle filter lifecycle (resample, predict, update) implemented from probabilistic theory.
+    *   `explore/frontiers.py`: Frontier detection logic (ROI extraction, clustering).
+*   **Scripts**:
+    *   `benchmark_exploration.py`: Custom benchmarking suite for quantitative analysis.
+    *   `live_slam_frontier.py` / `live_slam_random.py`: Real-time execution loops.
 
-Project Goal:
+### External Packages & References
+*   **PythonRobotics (Atsushi Sakai)**: used as a reference for the **Motion Model** equations and standard particle filter structure.
+    *   *Reference*: [PythonRobotics GitHub](https://github.com/AtsushiSakai/PythonRobotics)
+*   **Webots API**: Used for all low-level hardware interfacing (Lidar, Motors, Encoders).
+*   **NumPy**: Used for efficient matrix operations.
+*   **Matplotlib**: Used for real-time visualization.
 
-Our end goal would be to Show that probabilistic SLAM combined with smart exploration can
-produce an autonomous robot that maps and learns its world with confidence.
-
-
-#NOTES
-## Exploration API (Bassel)
-
-**Grid encoding (int):** `-1 = unknown`, `0 = free`, `1 = occupied`.
-
-**Coordinate frames**
-- SLAM grid: row-major `(i, j)` with `i` downwards, `j` to the right (confirm).
-- World: meters `(x, y)`, same axes used by Webots/world.
-- Conversion: `ij_to_xy(i, j, origin_xy, resolution)` where:
-  - `origin_xy` = world coords of grid cell `(0,0)`
-  - `resolution` = meters per cell (e.g., `0.05`)
-
-**Functions**
-- `detect_frontiers(grid, unknown_val=-1, free_val=0, connectivity=4) -> List[(i, j)]`  
-  Returns FREE cells that border UNKNOWN (frontiers).
-- `choose_frontier(frontiers, pose_ij) -> (i, j) | None`  
-  Picks the nearest frontier to the current grid pose.
-
-**Goal handoff (planner → controller)**
-1. Ramy provides: `grid (HxW)`, `origin_xy`, `resolution`, and robot `pose_ij`.
-2. Bassel: `frontier_ij = choose_frontier(detect_frontiers(grid), pose_ij)`
-3. Convert to world: `goal_xy = ij_to_xy(*frontier_ij, origin_xy, resolution)`
-4. Sahib’s controller consumes `goal_xy` (meters).
-
-
+---
+*University of Birmingham - Intelligent Robotics 06-30227*

@@ -14,6 +14,7 @@ class CsvLogger:
             self.f,
             fieldnames=[
                 "t",
+                "step",
                 "pose_x",
                 "pose_y",
                 "pose_theta",
