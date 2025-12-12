@@ -188,8 +188,8 @@ class FrontierExplorationSLAM:
             if self.planning_fail_cooldown > 0:
                 self.planning_fail_cooldown -= 1
             
-            # Replan if path is getting short (buffer of 5 steps) OR every 100 steps
-            elif len(self.current_path) < 5 or (self.step_count % 100 == 0):
+            # Replan if path is getting short (buffer of 15 steps) OR every 100 steps
+            elif len(self.current_path) < 15 or (self.step_count % 100 == 0):
                 # Detect
                 frontiers = detect_frontiers(grid_codes, unknown_val=0, free_val=-1)
                 clusters = cluster_frontiers(frontiers)
@@ -245,8 +245,8 @@ class FrontierExplorationSLAM:
             
             if self.current_path:
                 # --- Lookahead Logic ---
-                # Reduce lookahead to 0.4 to follow path more strictly (avoid cutting corners)
-                lookahead_dist = 0.40 
+                # Restore lookahead to 0.6 to smooth out jagged paths and prevent stuttering
+                lookahead_dist = 0.60 
                 
                 target_wp = self.current_path[0]
                 target_idx = 0

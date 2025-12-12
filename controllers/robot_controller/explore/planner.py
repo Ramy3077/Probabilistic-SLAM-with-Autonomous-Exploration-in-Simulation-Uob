@@ -111,7 +111,7 @@ def choose_frontier(
                  break
     
     # 2. Add top N closest ones, avoiding duplicates
-    TOP_N = 10
+    TOP_N = 3
     
     # Create a set of frontier IDs or just use the object identity to avoid dupes
     added_frontiers = {id(item[1]) for item in top_candidates}

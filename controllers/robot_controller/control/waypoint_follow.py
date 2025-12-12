@@ -27,9 +27,20 @@ class GoToGoal:
         v = self.kp_lin * dist
         w = self.kp_ang * err_ang
         
-        # Turn-In-Place if heading error is large (> 30 degrees)
-        if abs(err_ang) > 0.5:
-            v = 0.0
+        # Turn-In-Place / Pivot Logic (Relaxed for Smoothness)
+        # Instead of stopping completely, we dampen the linear velocity based on heading error.
+        # This acts like a "soft pivot" - if error is huge, we move very slowly, but rarely 0.
+        
+        # Cosine scaling: 
+        # err=0 -> factor=1.0 (full speed)
+        # err=90deg -> factor=0.0 (stop)
+        # err=180deg -> factor=0.0 (stop)
+        
+        # We clamp it so we don't go backwards or stop entirely unless strictly necessary
+        direction_factor = max(0.0, math.cos(err_ang))
+        
+        # Power it to make it sharper if needed (e.g. cos^3), but linear cos is usually smooth.
+        v = v * direction_factor
             # Boost w slightly for faster pivoting if needed, but simple P is usually fine
             
         v = max(-self.v_max, min(self.v_max, v))

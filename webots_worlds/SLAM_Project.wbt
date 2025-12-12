@@ -21,7 +21,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.6124344867776375 0.005801176575540069 0.7905000605665703 3.1266218085101327
-  position 5.956207594415509 0.5683597955656099 20.251395641523487
+  position 6.723133356907058 0.5538405648884609 23.224467162355886
 }
 TexturedBackground {
 }
@@ -37,7 +37,8 @@ RectangleArena {
   }
 }
 Robot {
-  rotation 0 0 1 1.5700000001102514
+  translation 0.15714538126679647 -1.1832765177682292 -0.02577120785599815
+  rotation -0.020447113999967275 0.017284515289418725 -0.9996415162748505 1.3356628406669036
   children [
     DEF body Pose {
       translation 0 0 0.225
@@ -57,7 +58,7 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 319.9588480122262
+        position 368.4055238595746
         anchor 0.225 0 0.125
       }
       device [
@@ -70,7 +71,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.225 0 0.125
-        rotation 0 1 0 1.57
+        rotation -0.6197856191311801 0.48201958311555065 -0.6192922636455994 2.2426493768500073
         children [
           Shape {
             appearance PBRAppearance {
@@ -97,11 +98,13 @@ Robot {
         boundingObject USE wheel
         physics DEF wheel_physics Physics {
         }
+        linearVelocity -0.00016311967063113004 -7.045448117924723e-05 2.0476747626839548e-05
+        angularVelocity 0.0010689047352435445 -0.004474331208226334 -0.00014864346460382116
       }
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        position 319.97494226610377
+        position 381.8646211676047
         anchor -0.225 0 0.125
       }
       device [
@@ -114,7 +117,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.225 0 0.125
-        rotation 0 1 0 1.57
+        rotation -0.41355492629476376 0.811305624874255 -0.41322573248132455 1.7776199640416053
         children [
           Shape {
             appearance PBRAppearance {
@@ -131,6 +134,8 @@ Robot {
         name "solid(1)"
         boundingObject USE wheel
         physics USE wheel_physics
+        linearVelocity -0.00010035619627223632 -5.539382922836512e-05 1.8508248382526806e-05
+        angularVelocity 0.00094846293551548 -0.003972314672592839 -0.00014805869738367762
       }
     }
     Solid {
@@ -197,7 +202,6 @@ Robot {
     Lidar {
       translation 0 0 0.45
       rotation 0 0 1 -1.5731853071795863
-      horizontalResolution 512
       fieldOfView 6.28
       numberOfLayers 1
       maxRange 4
@@ -207,6 +211,8 @@ Robot {
   physics Physics {
   }
   controller "robot_controller"
+  linearVelocity -8.796118884736684e-05 -5.27032778419367e-05 1.8392116079115462e-05
+  angularVelocity -0.0001093115407288514 0.00043649842857328716 -0.00014292483012791612
 }
 Bed {
   translation 4.01 -3.82 0
@@ -218,14 +224,32 @@ Bed {
   name "bed(1)"
 }
 Cabinet {
+  hidden position_6_0 1.9199396363638814e-05
+  hidden translation_7 -3.820679876129395e-06 -3.6677438863819134e-11 0
+  hidden rotation_7 0 0 1 1.9199404595385112e-05
+  hidden position_10_0 -1.6322375501864883e-05
+  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation -0.05 -4.27 0
 }
 Cabinet {
+  hidden position_6_0 1.919939636366679e-05
+  hidden translation_7 -3.820679876134963e-06 -3.6677438863819134e-11 0
+  hidden rotation_7 0 0 0.9999999999999999 1.9199404595385112e-05
+  hidden position_10_0 -1.6322375501864883e-05
+  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation 4.9 1.46 0
   rotation 0 0 1 3.14159
   name "cabinet(1)"
 }
 Cabinet {
+  hidden position_6_0 1.9199396363651783e-05
+  hidden translation_7 -3.820679876131977e-06 -3.6677438863819134e-11 0
+  hidden rotation_7 0 0 0.9999999999999999 1.9199404595385112e-05
+  hidden position_10_0 -1.6322375501864883e-05
+  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation -0.07 -3.43 0
   name "cabinet(2)"
 }
@@ -237,8 +261,10 @@ Table {
   translation -2.72 -2.51 0
 }
 OfficeChair {
-  translation 0.68 4.04 -0.00050478
-  rotation 0.0006972817409901603 -0.0007075262097696836 0.9999995066022964 1.570800495076824
+  hidden position_0_0 0.0002582961987849226
+  hidden rotation_1 0 0 1 0.00025829619876914316
+  translation 0.6799977524180997 4.039626398806585 -0.00856023522918331
+  rotation 0.001137330723430054 -0.0011355484018515355 0.9999987085034922 1.5707956214781813
 }
 Chair {
   translation -3.4 -2.86 0
@@ -265,6 +291,10 @@ Toilet {
   rotation 0 0 1 -1.5707953071795862
 }
 Fridge {
+  hidden position_0_0 -0.00013171645019444735
+  hidden position_0_1 0.00013171650867812554
+  hidden rotation_1 0 0 -1 0.0001317164507475073
+  hidden rotation_2 0 0 1 0.00013171650806392365
   translation -4.61 -4.6 0
 }
 Window {
