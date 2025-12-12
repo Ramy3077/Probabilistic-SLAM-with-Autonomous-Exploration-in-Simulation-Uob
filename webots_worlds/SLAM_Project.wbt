@@ -37,7 +37,7 @@ RectangleArena {
   }
 }
 Robot {
-  translation 0.15714538126679647 -1.1832765177682292 -0.02577120785599815
+  translation 0 0 -0.0257712
   rotation -0.020447113999967275 0.017284515289418725 -0.9996415162748505 1.3356628406669036
   children [
     DEF body Pose {
@@ -71,7 +71,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.225 0 0.125
-        rotation -0.6197856191311801 0.48201958311555065 -0.6192922636455994 2.2426493768500073
+        rotation -0.6197856191311802 0.48201958311555065 -0.6192922636455993 2.2426493768500073
         children [
           Shape {
             appearance PBRAppearance {
@@ -98,8 +98,6 @@ Robot {
         boundingObject USE wheel
         physics DEF wheel_physics Physics {
         }
-        linearVelocity -0.00016311967063113004 -7.045448117924723e-05 2.0476747626839548e-05
-        angularVelocity 0.0010689047352435445 -0.004474331208226334 -0.00014864346460382116
       }
     }
     HingeJoint {
@@ -117,7 +115,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.225 0 0.125
-        rotation -0.41355492629476376 0.811305624874255 -0.41322573248132455 1.7776199640416053
+        rotation -0.4135549262947637 0.811305624874255 -0.41322573248132466 1.7776199640416053
         children [
           Shape {
             appearance PBRAppearance {
@@ -134,8 +132,6 @@ Robot {
         name "solid(1)"
         boundingObject USE wheel
         physics USE wheel_physics
-        linearVelocity -0.00010035619627223632 -5.539382922836512e-05 1.8508248382526806e-05
-        angularVelocity 0.00094846293551548 -0.003972314672592839 -0.00014805869738367762
       }
     }
     Solid {
@@ -211,8 +207,6 @@ Robot {
   physics Physics {
   }
   controller "robot_controller"
-  linearVelocity -8.796118884736684e-05 -5.27032778419367e-05 1.8392116079115462e-05
-  angularVelocity -0.0001093115407288514 0.00043649842857328716 -0.00014292483012791612
 }
 Bed {
   translation 4.01 -3.82 0
@@ -225,19 +219,19 @@ Bed {
 }
 Cabinet {
   hidden position_6_0 1.9199396363638814e-05
-  hidden translation_7 -3.820679876129395e-06 -3.6677438863819134e-11 0
+  hidden translation_7 -3.8206798761293936e-06 -3.667752213054598e-11 0
   hidden rotation_7 0 0 1 1.9199404595385112e-05
   hidden position_10_0 -1.6322375501864883e-05
-  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden translation_11 -2.7609298160178502e-06 2.2532475885128633e-11 0
   hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation -0.05 -4.27 0
 }
 Cabinet {
   hidden position_6_0 1.919939636366679e-05
-  hidden translation_7 -3.820679876134963e-06 -3.6677438863819134e-11 0
+  hidden translation_7 -3.820679876134961e-06 -3.667752213054598e-11 0
   hidden rotation_7 0 0 0.9999999999999999 1.9199404595385112e-05
   hidden position_10_0 -1.6322375501864883e-05
-  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden translation_11 -2.7609298160178502e-06 2.2532475885128633e-11 0
   hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation 4.9 1.46 0
   rotation 0 0 1 3.14159
@@ -245,10 +239,10 @@ Cabinet {
 }
 Cabinet {
   hidden position_6_0 1.9199396363651783e-05
-  hidden translation_7 -3.820679876131977e-06 -3.6677438863819134e-11 0
+  hidden translation_7 -3.820679876131975e-06 -3.667752213054598e-11 0
   hidden rotation_7 0 0 0.9999999999999999 1.9199404595385112e-05
   hidden position_10_0 -1.6322375501864883e-05
-  hidden translation_11 -2.76092981601785e-06 2.253250364070425e-11 0
+  hidden translation_11 -2.7609298160178502e-06 2.2532475885128633e-11 0
   hidden rotation_11 0 0 -1 1.632237038948595e-05
   translation -0.07 -3.43 0
   name "cabinet(2)"
