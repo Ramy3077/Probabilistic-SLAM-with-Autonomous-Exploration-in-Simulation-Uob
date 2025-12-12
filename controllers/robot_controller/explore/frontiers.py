@@ -25,24 +25,60 @@ def detect_frontiers(
         grid: HxW int array with cells in {-1: unknown, 0: free, 1: occupied}.
         connectivity: 4 or 8-neighbor frontier rule (default 4).
     Return list of (i,j) cells that are FREE and have at least one UNKNOWN neighbor.
+    
+    Vectorized implementation for performance.
     """
+    # Create a boolean mask for free cells
+    is_free = (grid == free_val)
+    
+    # Create a boolean mask for unknown cells
+    is_unknown = (grid == unknown_val)
+    
+    # We want to find free cells that are adjacent to at least one unknown cell.
+    # We can do this by shifting the unknown mask and checking overlap.
+    
     H, W = grid.shape
-    F: List[Tuple[int, int]] = []
     
-    # Pre-compute neighbor deltas
-    di4 = [(-1,0), (1,0), (0,-1), (0,1)]
-    di8 = di4 + [(-1,-1), (-1,1), (1,-1), (1,1)]
-    nbrs = di4 if connectivity == 4 else di8
+    # Shifts for 4-connectivity: UP, DOWN, LEFT, RIGHT
+    # We padded with False so we don't wrap around
+    padded_unknown = np.pad(is_unknown, pad_width=1, mode='constant', constant_values=False)
     
-    # We can optimize this with vectorization if needed, but Python loops are fine for small maps.
-    # To be safe against borders, we iterate 1..H-1, 1..W-1.
-    for i in range(1, H-1):
-        for j in range(1, W-1):
-            if grid[i, j] == free_val:
-                # Check neighbors
-                if any(grid[i+di, j+dj] == unknown_val for (di, dj) in nbrs):
-                    F.append((i, j))
-    return F
+    # Check neighbors by slicing the padded array
+    # Center is [1:-1, 1:-1]
+    # Neighbors are shifted relative to center
+    
+    # 4-neighbors
+    # up:    [0:-2, 1:-1]
+    # down:  [2:  , 1:-1]
+    # left:  [1:-1, 0:-2]
+    # right: [1:-1, 2:  ]
+    
+    has_unknown_neighbor = (
+        padded_unknown[0:-2, 1:-1] | # Up
+        padded_unknown[2:  , 1:-1] | # Down
+        padded_unknown[1:-1, 0:-2] | # Left
+        padded_unknown[1:-1, 2:  ]   # Right
+    )
+    
+    if connectivity == 8:
+        # diagonals
+        has_unknown_neighbor |= (
+            padded_unknown[0:-2, 0:-2] | # Top-Left
+            padded_unknown[0:-2, 2:  ] | # Top-Right
+            padded_unknown[2:  , 0:-2] | # Bot-Left
+            padded_unknown[2:  , 2:  ]   # Bot-Right
+        )
+
+    # A frontier cell is FREE and HAS_UNKNOWN_NEIGHBOR
+    is_frontier = is_free & has_unknown_neighbor
+    
+    # Convert boolean mask to indices coords
+    # np.argwhere returns (N, 2) array, we want list of tuples
+    frontier_indices = np.argwhere(is_frontier)
+    
+    # Convert to list of tuples as expected by rest of code
+    # (Though optimizing the rest to use arrays would be better eventually)
+    return [tuple(x) for x in frontier_indices]
 
 def cluster_frontiers(
     frontier_cells: List[Tuple[int, int]], 

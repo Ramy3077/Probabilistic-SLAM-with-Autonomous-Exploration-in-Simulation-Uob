@@ -61,12 +61,13 @@ class FrontierExplorationSLAM:
         self.resolution = grid_spec.resolution
         
         self.path_planner = AStarPlanner(
-            safety_distance=0.28,
+            safety_distance=0.45, # Significantly larger margin
             allow_diagonal=True
         )
         
         # Controller
-        self.goto_goal = GoToGoal(v_max=0.25, w_max=2.0)
+        # Controller
+        self.goto_goal = GoToGoal(kp_lin=0.8, v_max=0.5, w_max=2.5, stop_dist=0.40)
         
         # State
         self.current_path = [] # List of (x,y) world waypoints
@@ -160,7 +161,7 @@ class FrontierExplorationSLAM:
             # Priority 1: Backup
             if self.backup_counter > 0:
                 self.backup_counter -= 1
-                self.waypoint.set_velocity_vw(-0.15, 0.0)
+                self.waypoint.set_velocity_vw(-0.30, 0.0) # Faster backup
                 self.current_path = [] # Clear path
                 self.stuck_counter = 0
                 self.step_count += 1
@@ -187,7 +188,8 @@ class FrontierExplorationSLAM:
             if self.planning_fail_cooldown > 0:
                 self.planning_fail_cooldown -= 1
             
-            elif not self.current_path or (self.step_count % 100 == 0):
+            # Replan if path is getting short (buffer of 5 steps) OR every 100 steps
+            elif len(self.current_path) < 5 or (self.step_count % 100 == 0):
                 # Detect
                 frontiers = detect_frontiers(grid_codes, unknown_val=0, free_val=-1)
                 clusters = cluster_frontiers(frontiers)
@@ -238,44 +240,87 @@ class FrontierExplorationSLAM:
                         self.consecutive_planning_failures = 0
                         self.turn_counter = 45 # Force a move to break the loop
 
-            # 4) Path Following Control
+            # 4) Path Following Control (Pure Pursuit-ish)
             obstacle_min = self._front_obstacle_min(lidar_ranges)
             
             if self.current_path:
-                target_wp = self.current_path[0]
+                # --- Lookahead Logic ---
+                # Reduce lookahead to 0.4 to follow path more strictly (avoid cutting corners)
+                lookahead_dist = 0.40 
                 
+                target_wp = self.current_path[0]
+                target_idx = 0
+                
+                # Scan path for a point far enough ahead
+                for i, wp in enumerate(self.current_path):
+                    dist = np.hypot(wp[0]-x, wp[1]-y)
+                    if dist > lookahead_dist:
+                        target_wp = wp
+                        target_idx = i
+                        break
+                    # If we didn't find one > distance, use the last one (keep loop running)
+                    target_wp = wp
+                    target_idx = i
+                
+                # Prcune passed waypoints (keep the target and everything after)
+                # But don't prune everything if we are just looking ahead!
+                # Actually, standard Pure Pursuit doesn't delete points until we pass them.
+                # Here, let's delete points that are definitely "behind" or "reached"
+                
+                # Simple logic: remove points we are CLOSE to.
+                # The lookahead search above is just for TARGETING.
+                # PRUNING is separate.
+                
+                while self.current_path:
+                     wp0 = self.current_path[0]
+                     d0 = np.hypot(wp0[0]-x, wp0[1]-y)
+                     if d0 < 0.3: # Reached waypoint radius
+                          if len(self.current_path) > 1:
+                              self.current_path.pop(0)
+                          else:
+                              # Last point, don't pop until REALLY close
+                              if d0 < 0.1:
+                                  self.current_path.pop(0)
+                              break
+                     else:
+                         break
+
+                # Now use the lookahead target found earlier
                 v, w, reached_wp = self.goto_goal.step(
                     (x, y, theta),
                     target_wp,
                     obstacle_min=obstacle_min
                 )
                 
+                # If target is NOT the final one, don't let the P-controller slow us down too much.
+                # Inspect v. If it's small but we have more path, FORCE SPEED.
+                is_final_segment = (target_idx == len(self.current_path) - 1)
+                
+                if not is_final_segment and v < self.goto_goal.v_max:
+                     # We want to cruise if we are not at the end
+                     # But respect turn rate!
+                     if abs(w) < 1.0: # If not turning hard
+                         v = self.goto_goal.v_max
+                
                 # Check STUCK condition (Safety Stop Triggered)
-                # If v is 0 because of obstacle, but we haven't reached goal
                 if v == 0.0 and obstacle_min is not None and obstacle_min < self.goto_goal.stop_dist:
                     self.stuck_counter += 1
                 else:
-                    self.stuck_counter = max(0, self.stuck_counter - 1) # Decay if moving
+                    self.stuck_counter = max(0, self.stuck_counter - 1) 
 
-                # If stuck too long, blacklist, backup and replan
-                if self.stuck_counter > 10: # ~0.3s - 0.5s
-                    print(f"🛑 STUCK at obstacle ({obstacle_min:.2f}m). Starting Recovery (Backup+Turn).")
+                if self.stuck_counter > 10:
+                    print(f"🛑 STUCK at obstacle ({obstacle_min:.2f}m). Starting Recovery.")
                     if self.current_target_frontier:
                         c = self.current_target_frontier.centroid
                         cx = self.origin_xy[0] + c[1] * self.resolution
                         cy = self.origin_xy[1] + c[0] * self.resolution
                         self.blacklist.append((cx, cy))
                     
-                    self.current_path = [] # Force replan check next step
+                    self.current_path = [] 
                     self.current_target_frontier = None
                     self.stuck_counter = 0
                     self.planning_fail_cooldown = 0
-                    self.backup_counter = 60 # Reverse for 60 steps (~2s)
-                
-                # Check distance to waypoint to pop
-                dist_to_wp = np.hypot(target_wp[0]-x, target_wp[1]-y)
-                if dist_to_wp < 0.15: 
-                    self.current_path.pop(0) 
+                    self.backup_counter = 40 
                 
                 self.waypoint.set_velocity_vw(v, w)
             else:
@@ -304,8 +349,8 @@ class FrontierExplorationSLAM:
                 strategy="smart_frontier_simple",
             )
 
-            # 6) Console debug
-            if self.step_count % 20 == 0:
+            # 6) Console debug (Reduced frequency to reduce lag)
+            if self.step_count % 50 == 0:
                 n_clusters = len(clusters) if 'clusters' in locals() else 0
                 path_len = len(self.current_path)
                 print(
