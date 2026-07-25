@@ -23,8 +23,8 @@ The goal is to enable a robot to map an unknown environment using a **Particle F
 ## Installation
 1.  Clone this repository:
     ```bash
-    git clone https://github.com/YourUsername/RoboticsProject.git
-    cd RoboticsProject
+    git clone https://github.com/Ramy3077/Probabilistic-SLAM-with-Autonomous-Exploration-in-Simulation-Uob.git
+    cd Probabilistic-SLAM-with-Autonomous-Exploration-in-Simulation-Uob
     ```
 2.  Install python dependencies:
     ```bash
