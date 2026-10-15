@@ -1,0 +1,4 @@
+.git
+demo/dist
+**/__pycache__
+webots_worlds

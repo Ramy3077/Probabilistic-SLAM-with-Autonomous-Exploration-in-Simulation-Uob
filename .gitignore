@@ -33,3 +33,6 @@ Thumbs.db
 Timeline.md
 controllers/robot_controller/eval_logs/
 controllers/robot_controller/data.json
+
+# Built demo
+demo/dist/

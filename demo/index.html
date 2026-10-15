@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FastSLAM Live Demo</title>
+  <meta name="description" content="A particle-filter SLAM system mapping a room and exploring it on its own, running the project's Python code in your browser with Pyodide.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>FastSLAM, live</h1>
+        <p class="sub">A robot maps a room it has never seen and decides where to look next. The filter, the map and the exploration logic are the project's own Python modules, running in your browser.</p>
+      </div>
+    </div>
+    <a class="repo" href="https://github.com/Ramy3077/Probabilistic-SLAM-with-Autonomous-Exploration-in-Simulation-Uob" target="_blank" rel="noopener">Source on GitHub</a>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="Simulation view">
+      <div class="canvas-wrap">
+        <canvas id="view" aria-label="Map, particles and robot pose"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="status">Loading</p>
+        </div>
+      </div>
+      <ul class="legend">
+        <li><i class="sw sw-true"></i>True robot and path</li>
+        <li><i class="sw sw-est"></i>Filter estimate</li>
+        <li><i class="sw sw-part"></i>Particles</li>
+        <li><i class="sw sw-front"></i>Frontier cells</li>
+        <li><i class="sw sw-plan"></i>Planned path</li>
+        <li><i class="sw sw-wall"></i>Real walls (hidden from the robot)</li>
+      </ul>
+    </section>
+
+    <aside class="panel">
+      <div class="controls">
+        <div class="row buttons">
+          <button id="play" class="primary" disabled>Play</button>
+          <button id="reset" disabled>Reset</button>
+        </div>
+
+        <div class="field">
+          <span class="label">Speed</span>
+          <div class="seg" id="speed" role="radiogroup" aria-label="Speed">
+            <button role="radio" data-v="1" aria-checked="true">1x</button>
+            <button role="radio" data-v="3" aria-checked="false">3x</button>
+            <button role="radio" data-v="8" aria-checked="false">8x</button>
+            <button role="radio" data-v="0" aria-checked="false">Max</button>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="label">Particles <output id="pOut">40</output></span>
+          <input id="particles" type="range" min="10" max="100" step="10" value="40">
+          <span class="hint">Changing this restarts the run.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Sensor and wheel-slip noise <output id="nOut">1.0x</output></span>
+          <input id="noise" type="range" min="0" max="3" step="0.25" value="1">
+          <span class="hint">Applies to the simulator. The filter's own noise model stays as written.</span>
+        </label>
+
+        <div class="field toggles">
+          <label><input type="checkbox" id="showTruth" checked> Real walls</label>
+          <label><input type="checkbox" id="showScan" checked> LiDAR hits</label>
+          <label><input type="checkbox" id="showParticles" checked> Particles</label>
+        </div>
+      </div>
+
+      <dl class="stats">
+        <div><dt>Sim time</dt><dd id="sTime">0.0 s</dd></div>
+        <div><dt>Position error</dt><dd id="sErr">0.00 m</dd></div>
+        <div><dt>Heading error</dt><dd id="sHerr">0.0&deg;</dd></div>
+        <div><dt>Particle spread</dt><dd id="sSpread">0 cm</dd></div>
+        <div><dt>Free space mapped</dt><dd id="sExpl">0%</dd></div>
+        <div><dt>Compute per step</dt><dd id="sMs">-</dd></div>
+      </dl>
+    </aside>
+  </main>
+
+  <section class="notes">
+    <div class="note">
+      <h2>What is running</h2>
+      <p>Each tick, the simulator hands the filter two things: wheel-encoder speeds and a 180-beam LiDAR scan. The particle filter moves every particle with the motion model (<code>models/motion.py</code>), scores it by how well the scan lines up with the map so far, keeps the best one for mapping and resamples (<code>slam/fastslam.py</code>). The map is a log-odds occupancy grid updated along each beam (<code>slam/occupancy.py</code>). Frontier detection and goal choice come from <code>explore/</code>, and A* plus the go-to-goal controller from <code>control/</code>.</p>
+      <p id="files" class="files"></p>
+    </div>
+    <div class="note">
+      <h2>What is simplified</h2>
+      <p>The room is the wall layout of <code>webots_worlds/SLAM_Project.wbt</code>, rasterised to 5 cm cells. Furniture is left out. Webots is replaced by a small 2D simulator (<code>demo/py/sim.py</code>) with the same robot size, wheel base and 4 m LiDAR range. The per-tick loop follows <code>scripts/live_slam_frontier.py</code>. One change for speed: the A* safety-margin check is answered from a precomputed obstacle dilation, which gives the same result.</p>
+      <p>Built for University of Birmingham Intelligent Robotics by Ramy Mekhzer (SLAM core), Bassel Kenaan (exploration) and Sahib Singh (control).</p>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
