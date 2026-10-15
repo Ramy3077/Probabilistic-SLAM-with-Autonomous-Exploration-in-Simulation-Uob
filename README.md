@@ -32,6 +32,33 @@ python3 -m http.server 8000 --directory demo/dist
 # open http://localhost:8000
 ```
 
+## Results (2D demo simulator)
+
+These numbers come from the browser demo's 2D simulator (`demo/py/sim.py`) run headless, not from Webots. Each row is 10 runs (seeds 0 to 9) of the full loop until it reaches its terminal state, on the `SLAM_Project.wbt` wall layout. Noise scales the simulator's wheel slip and range noise; the filter's own noise model is unchanged. Pose error is the distance between the filter's estimate and the true position at the end of the run. Free space mapped is the share of the world's free cells that the estimated map has marked as known.
+
+| Particles | Noise | Final pose error (m), mean ± sd | Median pose error (m) | Free space mapped (%), mean ± sd | Time to Done (s), mean ± sd |
+|---|---|---|---|---|---|
+| 10 | 0.5x | 0.79 ± 0.57 | 0.55 | 80.0 ± 12.6 | 149.7 ± 45.1 |
+| 10 | 1.0x | 0.94 ± 0.74 | 0.94 | 69.6 ± 17.6 | 158.3 ± 36.3 |
+| 10 | 2.0x | 1.36 ± 0.77 | 1.41 | 72.4 ± 15.3 | 127.8 ± 47.0 |
+| 30 | 0.5x | 0.69 ± 0.60 | 0.49 | 82.9 ± 21.5 | 111.2 ± 33.7 |
+| 30 | 1.0x | 0.64 ± 0.42 | 0.61 | 87.7 ± 13.0 | 123.8 ± 24.6 |
+| 30 | 2.0x | 1.24 ± 1.61 | 0.67 | 85.4 ± 12.0 | 121.7 ± 31.3 |
+| 100 | 0.5x | 0.37 ± 0.27 | 0.35 | 96.1 ± 2.0 | 95.7 ± 7.7 |
+| 100 | 1.0x | 2.44 ± 6.56 | 0.43 | 88.0 ± 15.0 | 119.2 ± 25.7 |
+| 100 | 2.0x | 0.45 ± 0.36 | 0.39 | 95.8 ± 2.2 | 117.7 ± 31.4 |
+
+All 90 runs stopped on their own. One run (100 particles, 1.0x noise, seed 0) lost track completely and ended 21 m off, which is why the mean and sd for that row are much larger than its median. In the low-coverage runs I inspected, the heading estimate had drifted, the map came out rotated and a doorway had closed up in the robot's own map, so the remaining rooms were unreachable as far as the robot could tell.
+
+Reproduce (runs in parallel on all cores):
+
+```bash
+pip install numpy
+python scripts/bench_demo.py
+```
+
+Per-run results are in `results/bench_demo_runs.csv` and the table above is `results/bench_demo_summary.csv`.
+
 ## Run the tests
 
 ```bash
@@ -74,6 +101,8 @@ controllers/robot_controller/
   tests/                   frontier and metric tests
 tests/                     particle filter and SLAM loop tests
 demo/                      browser demo (Pyodide) and its build script
+scripts/bench_demo.py      headless benchmark of the demo simulator
+results/                   benchmark CSVs
 webots_worlds/             the four Webots worlds
 ```
 
