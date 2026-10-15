@@ -59,6 +59,22 @@ python scripts/bench_demo.py
 
 Per-run results are in `results/bench_demo_runs.csv` and the table above is `results/bench_demo_summary.csv`.
 
+## Design decisions and trade-offs
+
+- **One shared map instead of a map per particle.** Full FastSLAM gives each particle its own map, so a particle that guessed the pose wrong also carries its own wrong map and can be dropped with it. Here the particles only estimate the pose, and the best one writes into a single grid (`slam/fastslam.py`). Memory and map updates stay constant as the particle count grows, which matters in Python and in the browser. Cost: once a wrong pose is written into the map it stays there. Nothing can undo it, and there is no loop closure.
+- **Pick the mapping pose before resampling.** After resampling the weights are uniform, so taking the highest weight would return an arbitrary jittered copy. The pose that writes the map is chosen while the weights still reflect the scan match. Cost: the map follows one particle, not a weighted mean, so it jumps when the best particle changes.
+- **Particle count.** Each particle scores every third LiDAR beam against the map (in both the Webots loop and the demo), so weighting cost grows linearly with the particle count. In the benchmark at 1.0x noise, median final pose error was 0.94 m with 10 particles, 0.61 m with 30 and 0.43 m with 100, and free space mapped rose from 69.6% to 87.7% and 88.0%. The Webots loop uses 50 and the demo 40, between the tested points.
+- **Recovery logic in the demo loop, not in the planner.** The demo needed to stop parking when frontiers remained and to end runs with a result. `explore/planner.py` and the control code belong to teammates and are what the Webots loop runs, so the fixes (re-plan every 10 ticks, drop goals that stop making progress, drive towards frontiers the planner cannot score, stop when nothing reachable is left) live in `demo/py/runner.py`. Cost: the demo and the Webots loop now behave differently, and the Webots loop does not get these fixes.
+- **A 2D stand-in simulator for the demo and benchmark.** Webots cannot run in a browser or in CI, so `demo/py/sim.py` uses the same robot radius, wheel base and LiDAR range on the real wall layout. Cost: no furniture, simplified physics, and the results table is for this simulator, not Webots.
+
+## Known limitations
+
+- **Heading drift.** Heading is only corrected by matching scans against the map the filter is building, and that map was drawn with the same heading. When the heading drifts, the shared map comes out rotated, walls get drawn in the wrong place, and doorways can close up in the robot's own map, which hides rooms it has not visited. This is what happened in the low-coverage benchmark runs.
+- One run in 90 (100 particles, 1.0x noise, seed 0) lost track completely and ended 21 m off. A shared map gives no way to recover from that.
+- No loop closure, so error builds up over long runs.
+- The benchmark numbers come from the 2D demo simulator, not Webots.
+- The motion model's noise parameters are fixed, not tuned per world.
+
 ## Run the tests
 
 ```bash
