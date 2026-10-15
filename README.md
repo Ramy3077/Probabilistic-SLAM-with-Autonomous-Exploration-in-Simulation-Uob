@@ -1,6 +1,8 @@
 # Probabilistic SLAM with Autonomous Exploration
 
-A particle-filter SLAM system, written from scratch in Python, that lets a simulated robot map a building it has never seen and choose where to explore next.
+A particle-filter SLAM system in Python that lets a simulated robot map a building it has never seen and choose where to explore next.
+
+Group project of three (Intelligent Robotics, University of Birmingham). Ramy Mekhzer wrote the SLAM core: motion model, particle weighting, resampling and occupancy mapping. Bassel Kenaan built the exploration and Sahib Singh the control. Details under [Team and roles](#team-and-roles).
 
 [![tests](https://github.com/Ramy3077/Probabilistic-SLAM-with-Autonomous-Exploration-in-Simulation-Uob/actions/workflows/tests.yml/badge.svg)](https://github.com/Ramy3077/Probabilistic-SLAM-with-Autonomous-Exploration-in-Simulation-Uob/actions/workflows/tests.yml)
 
@@ -20,7 +22,7 @@ This is a simplified FastSLAM: every particle shares one global map instead of c
 
 - **World:** the walls of `webots_worlds/SLAM_Project.wbt`, rasterised to a 5 cm grid by `demo/tools/wbt_to_grid.py`. Furniture is left out.
 - **Simulator:** `demo/py/sim.py` stands in for Webots. Same robot radius, wheel base and 4 m LiDAR range, with wheel slip and range noise you can turn up.
-- **Loop:** `demo/py/runner.py` follows the per-tick loop of `scripts/live_slam_frontier.py`. The A* safety-margin check is answered from a precomputed obstacle dilation so it runs fast in WebAssembly; the result is the same.
+- **Loop:** `demo/py/runner.py` follows the per-tick loop of `scripts/live_slam_frontier.py`. The A* safety-margin check is answered from a precomputed obstacle dilation so it runs fast in WebAssembly; the result is the same. The demo adds recovery the Webots loop does not have: it re-plans every 10 ticks rather than every tick, gives up on goals it stops making progress towards, drives towards frontiers that `explore/planner.py` cannot score (thin LiDAR fans seen through doorways), and stops with a summary once no reachable frontier is left.
 
 Run it locally:
 
