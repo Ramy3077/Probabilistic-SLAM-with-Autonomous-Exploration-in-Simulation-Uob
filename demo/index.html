@@ -32,6 +32,7 @@
           <div class="spinner" aria-hidden="true"></div>
           <p id="status">Loading</p>
         </div>
+        <p id="doneMsg" class="done-msg" role="status" hidden></p>
       </div>
       <ul class="legend">
         <li><i class="sw sw-true"></i>True robot and path</li>
@@ -98,7 +99,7 @@
     </div>
     <div class="note">
       <h2>What is simplified</h2>
-      <p>The room is the wall layout of <code>webots_worlds/SLAM_Project.wbt</code>, rasterised to 5 cm cells. Furniture is left out. Webots is replaced by a small 2D simulator (<code>demo/py/sim.py</code>) with the same robot size, wheel base and 4 m LiDAR range. The per-tick loop follows <code>scripts/live_slam_frontier.py</code>. One change for speed: the A* safety-margin check is answered from a precomputed obstacle dilation, which gives the same result.</p>
+      <p>The room is the wall layout of <code>webots_worlds/SLAM_Project.wbt</code>, rasterised to 5 cm cells. Furniture is left out. Webots is replaced by a small 2D simulator (<code>demo/py/sim.py</code>) with the same robot size, wheel base and 4 m LiDAR range. The per-tick loop follows <code>scripts/live_slam_frontier.py</code>. One change for speed: the A* safety-margin check is answered from a precomputed obstacle dilation, which gives the same result. The demo also adds recovery the Webots loop does not have: it gives up on goals it stops making progress towards, drives towards frontiers the planner cannot score, and stops when no reachable frontier is left.</p>
       <p>Built for University of Birmingham Intelligent Robotics by Ramy Mekhzer (SLAM core), Bassel Kenaan (exploration) and Sahib Singh (control).</p>
     </div>
   </section>

@@ -132,10 +132,17 @@ function onFrame(f) {
   }
   gridLayer.getContext("2d").putImageData(gridImg, 0, 0);
   updateStats(f);
-  const complete = f.done || f.explored >= 0.995;
+  const complete = f.done;
   if (complete && running) {
     setRunning(false);
     $("play").textContent = "Run again";
+  }
+  const msg = $("doneMsg");
+  if (complete) {
+    msg.textContent = `Done: ${Math.round(f.explored * 100)}% mapped in ${Math.round(f.t)} s, final pose error ${f.err.toFixed(2)} m (${f.doneReason}).`;
+    msg.hidden = false;
+  } else if (!msg.hidden) {
+    msg.hidden = true;
   }
   frame.complete = complete;
   dirty = true;

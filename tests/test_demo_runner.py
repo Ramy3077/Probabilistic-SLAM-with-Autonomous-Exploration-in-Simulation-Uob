@@ -25,3 +25,17 @@ def test_demo_builds_a_map_and_tracks_pose():
     assert frame["err"] < 1.0
     # the robot actually drove somewhere
     assert np.hypot(*(np.array(frame["true"][:2]) - demo.world.start[:2])) > 0.3
+
+
+def test_demo_run_terminates():
+    """The demo stops on its own with a reason instead of parking forever."""
+    runner.silence_prints()
+    np.random.seed(1)
+    demo = runner.Demo(json.loads(MAP.read_text()), num_particles=20, noise=1.0, seed=1)
+    limit = int(300 / runner.DT)  # 300 s of simulated time
+    while not demo.done and demo.step_count < limit:
+        demo.step()
+    frame = demo.frame()
+    assert frame["done"], "run did not reach a terminal state"
+    assert frame["done_reason"]
+    assert frame["explored"] > 0.25

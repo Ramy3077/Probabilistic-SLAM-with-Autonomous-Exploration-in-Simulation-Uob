@@ -83,6 +83,7 @@ function sendFrame(stepMs = 0) {
     n: f.get("n"),
     explored: f.get("explored"),
     done: f.get("done"),
+    doneReason: f.get("done_reason"),
     stepMs,
     true: buf(f, "true"),
     est: buf(f, "est"),
@@ -107,7 +108,7 @@ function tick() {
   let steps = 0;
   // Step until caught up with the requested speed or 45 ms of work, then draw.
   try {
-    while (budget >= 1 && performance.now() - t0 < 45) {
+    while (budget >= 1 && performance.now() - t0 < 45 && !demo.done) {
       demo.step();
       budget -= 1;
       steps++;
@@ -119,6 +120,10 @@ function tick() {
   }
   if (speed === 0 || budget > 8) budget = Math.min(budget, 1);
   if (steps > 0) sendFrame((performance.now() - t0) / steps);
+  if (demo.done) {
+    running = false;
+    return;
+  }
   timer = setTimeout(tick, steps > 0 ? 0 : 8);
 }
 
