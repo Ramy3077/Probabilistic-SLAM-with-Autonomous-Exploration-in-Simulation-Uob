@@ -92,7 +92,7 @@ canvas { display: block; width: 100%; height: 100%; }
 }
 .overlay.hidden { opacity: 0; pointer-events: none; }
 .overlay.error { color: var(--wall); }
-.overlay.error .done-msg {
+.done-msg {
   position: absolute; left: 10px; right: 10px; bottom: 10px;
   margin: 0;
   padding: 9px 12px;
@@ -104,7 +104,7 @@ canvas { display: block; width: 100%; height: 100%; }
   color: var(--text);
 }
 .done-msg[hidden] { display: none; }
-.spinner { display: none; }
+.overlay.error .spinner { display: none; }
 .spinner {
   width: 26px; height: 26px; border-radius: 50%;
   border: 2px solid var(--line); border-top-color: var(--accent);

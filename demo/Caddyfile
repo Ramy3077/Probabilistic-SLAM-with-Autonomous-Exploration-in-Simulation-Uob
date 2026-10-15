@@ -7,6 +7,6 @@
 	encode zstd gzip
 	@py path *.py
 	header @py Content-Type "text/plain; charset=utf-8"
-	header Cache-Control "public, max-age=300"
+	header Cache-Control "no-cache"
 	file_server
 }
