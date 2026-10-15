@@ -6,7 +6,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 import numpy as np
-from controllers.robot_controller.slam.fastslam import FastSLAM, FastSLAMConfig
+from controllers.robot_controller.slam.fastslam import ParticleFilterSLAM as FastSLAM, FastSLAMConfig
 from controllers.robot_controller.slam.occupancy import OccupancyGrid, GridSpec, LaserScan
 from controllers.robot_controller.slam.particles import Pose
 
@@ -92,20 +92,14 @@ def test_full_slam_loop():
     dist_traveled = np.linalg.norm(final_pose[:2])
     print(f"\nTotal Distance Traveled: {dist_traveled:.3f}m (Expected ~2.5m)")
     
-    if 2.0 < dist_traveled < 3.0:
-        print(" Motion Model is driving the particles.")
-    else:
-        print(" Robot barely moved or teleported!")
+    assert 2.0 < dist_traveled < 3.0, "Robot barely moved or teleported"
 
     map_probs = grid.probabilities()
     occupied_count = np.sum(map_probs > 0.6) 
     
     print(f"Occupied Grid Cells: {occupied_count}")
     
-    if occupied_count > 0:
-        print(" Map is being updated with obstacles.")
-    else:
-        print("Map is still  empty!")
+    assert occupied_count > 0, "Map is still empty"
 
     print("Test Complete")
 

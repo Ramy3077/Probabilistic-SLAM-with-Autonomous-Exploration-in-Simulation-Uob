@@ -28,7 +28,7 @@ def test_motion_statistics():
 
     N = 1000 
     # Starting all at (0,0,0) to measure drift easily
-    start_particles = [Particle(np.zeros(3), 1.0/N) for _ in range(N)]
+    start_particles = [Particle(x=0.0, y=0.0, theta=0.0, weight=1.0/N) for _ in range(N)]
     pset = ParticleSet(start_particles)
     
     # Move: 1.0 meter forward, 0.5 radians turn
@@ -73,7 +73,7 @@ def test_resampling_logic():
 
     N = 10
     # create particles
-    start_particles = [Particle(np.array([i, 0.0, 0.0]), 1.0/N) for i in range(N)]
+    start_particles = [Particle(x=float(i), y=0.0, theta=0.0, weight=1.0/N) for i in range(N)]
     pset = ParticleSet(start_particles)
     
     #  Forcing particle #5 to be the "Correct" one

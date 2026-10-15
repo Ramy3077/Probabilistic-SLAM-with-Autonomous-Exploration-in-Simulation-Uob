@@ -490,7 +490,9 @@ def simplify_path(
         point = np.array(path[i])
         
         # Distance from point to line segment
-        dist = np.abs(np.cross(end - start, start - point)) / np.linalg.norm(end - start)
+        # 2D cross product written out (np.cross dropped 2-vector support in NumPy 2.0)
+        a, b = end - start, start - point
+        dist = np.abs(a[0] * b[1] - a[1] * b[0]) / np.linalg.norm(end - start)
         
         if dist > max_dist:
             max_dist = dist
