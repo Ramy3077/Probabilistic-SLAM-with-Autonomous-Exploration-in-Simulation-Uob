@@ -9,7 +9,7 @@ OUT="$HERE/dist"
 
 rm -rf "$OUT"
 mkdir -p "$OUT/core" "$OUT/py" "$OUT/maps"
-cp "$HERE"/index.html "$HERE"/app.js "$HERE"/worker.js "$HERE"/style.css "$HERE"/favicon.svg "$OUT/"
+cp "$HERE"/index.html "$HERE"/app.js "$HERE"/worker.js "$HERE"/style.css "$HERE"/favicon.svg "$HERE"/preview.webp "$OUT/"
 cp "$HERE"/py/*.py "$OUT/py/"
 cp "$HERE"/maps/*.json "$OUT/maps/"
 

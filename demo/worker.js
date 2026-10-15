@@ -11,7 +11,7 @@ let budget = 0;
 let last = 0;
 let timer = null;
 
-const status = (text) => postMessage({ type: "status", text });
+const status = (text, step, total = 4) => postMessage({ type: "status", text, step, total });
 
 async function fetchText(path) {
   const r = await fetch(path);
@@ -20,14 +20,21 @@ async function fetchText(path) {
 }
 
 async function boot() {
-  status("Starting Python (Pyodide 0.27.7)");
+  // Fetch the project's own files while the runtime downloads.
+  const modulesP = (async () => {
+    const files = JSON.parse(await fetchText("core/manifest.json"));
+    const sources = await Promise.all(files.map((f) => fetchText("core/" + f)));
+    const simSrc = await Promise.all(["sim.py", "runner.py"].map((f) => fetchText("py/" + f)));
+    return { files, sources, simSrc, mapText: await fetchText("maps/rooms.json") };
+  })();
+  modulesP.catch(() => {});
+  status("Loading Python runtime (about 5 MB)\u2026", 1);
   py = await loadPyodide({ indexURL: PYODIDE, stdout: () => {}, stderr: (s) => console.warn(s) });
-  status("Loading NumPy");
+  status("Loading NumPy (about 3 MB)\u2026", 2);
   await py.loadPackage("numpy");
 
-  status("Fetching the project's modules");
-  const files = JSON.parse(await fetchText("core/manifest.json"));
-  const sources = await Promise.all(files.map((f) => fetchText("core/" + f)));
+  status("Fetching the project's modules\u2026", 3);
+  const { files, sources, simSrc, mapText } = await modulesP;
   py.FS.mkdirTree("/app/core");
   files.forEach((f, i) => {
     const dir = "/app/core/" + f.split("/")[0];
@@ -35,12 +42,9 @@ async function boot() {
     py.FS.writeFile("/app/core/" + f, sources[i]);
   });
   py.FS.mkdirTree("/app/demo");
-  for (const f of ["sim.py", "runner.py"]) {
-    py.FS.writeFile("/app/demo/" + f, await fetchText("py/" + f));
-  }
-  const mapText = await fetchText("maps/rooms.json");
+  ["sim.py", "runner.py"].forEach((f, i) => py.FS.writeFile("/app/demo/" + f, simSrc[i]));
 
-  status("Importing slam.fastslam, explore.frontiers, control.path_planner");
+  status("Importing SLAM modules (fastslam, frontiers, path planner)\u2026", 4);
   py.globals.set("MAP_JSON", mapText);
   py.runPython(`
 import sys, json

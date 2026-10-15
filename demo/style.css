@@ -83,7 +83,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .overlay {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-  background: rgba(8, 10, 14, 0.82);
+  background: linear-gradient(rgba(8, 10, 14, 0.7), rgba(8, 10, 14, 0.86)), url("preview.webp") center / cover no-repeat;
   color: var(--muted);
   font: 13px var(--mono);
   text-align: center;
@@ -93,8 +93,9 @@ canvas { display: block; width: 100%; height: 100%; }
 .overlay.hidden { opacity: 0; pointer-events: none; }
 .overlay.error { color: var(--wall); }
 .done-msg {
-  position: absolute; left: 10px; right: 10px; bottom: 10px;
-  margin: 0;
+  width: min(100%, max(320px, calc(100vh - 190px)));
+  box-sizing: border-box;
+  margin: 10px 0 0;
   padding: 9px 12px;
   background: rgba(8, 10, 14, 0.88);
   border: 1px solid var(--line);
@@ -104,7 +105,13 @@ canvas { display: block; width: 100%; height: 100%; }
   color: var(--text);
 }
 .done-msg[hidden] { display: none; }
-.overlay.error .spinner { display: none; }
+.overlay.error .spinner, .overlay.error .bar, .overlay.error .stage-note, .overlay.error .preview-note { display: none; }
+.overlay p { margin: 0; padding: 0 16px; text-shadow: 0 1px 3px #000; }
+#status { color: var(--text, #e8edf2); font-size: 14px; }
+.bar { width: min(240px, 70%); height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 8%; background: var(--accent); transition: width 0.6s ease; }
+.stage-note { font-size: 12px; }
+.preview-note { position: absolute; bottom: 10px; font-size: 11px; opacity: 0.7; }
 .spinner {
   width: 26px; height: 26px; border-radius: 50%;
   border: 2px solid var(--line); border-top-color: var(--accent);
@@ -186,7 +193,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  .canvas-wrap { width: 100%; }
+  .canvas-wrap, .done-msg { width: 100%; }
   .notes { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {

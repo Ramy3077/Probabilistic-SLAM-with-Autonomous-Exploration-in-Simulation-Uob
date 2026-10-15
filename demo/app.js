@@ -33,7 +33,13 @@ let dirty = true;
 const worker = new Worker("worker.js");
 worker.onmessage = (e) => {
   const m = e.data;
-  if (m.type === "status") statusEl.textContent = m.text;
+  if (m.type === "status") {
+    statusEl.textContent = m.text;
+    if (m.step) {
+      $("stage").textContent = `Step ${m.step} of ${m.total}. First visit only; later visits load from cache.`;
+      $("barFill").style.width = Math.round((m.step / m.total) * 100) + "%";
+    }
+  }
   else if (m.type === "ready") onReady(m);
   else if (m.type === "frame") onFrame(m);
   else if (m.type === "error") showError(m.text);

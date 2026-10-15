@@ -7,6 +7,10 @@
   <meta name="description" content="A particle-filter SLAM system mapping a room and exploring it on its own, running the project's Python code in your browser with Pyodide.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" as="fetch" crossorigin href="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.asm.wasm">
+  <link rel="preload" as="fetch" crossorigin href="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/python_stdlib.zip">
+  <link rel="preload" as="fetch" crossorigin href="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/numpy-2.0.2-cp312-cp312-pyodide_2024_0_wasm32.whl">
+  <link rel="preload" as="image" href="preview.webp" type="image/webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -30,10 +34,13 @@
         <canvas id="view" aria-label="Map, particles and robot pose"></canvas>
         <div id="overlay" class="overlay">
           <div class="spinner" aria-hidden="true"></div>
-          <p id="status">Loading</p>
+          <p id="status" role="status">Loading Python runtime (about 5 MB)&hellip;</p>
+          <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+          <p id="stage" class="stage-note">Step 1 of 4. First visit only; later visits load from cache.</p>
+          <p class="preview-note">Preview of a finished run</p>
         </div>
-        <p id="doneMsg" class="done-msg" role="status" hidden></p>
       </div>
+      <p id="doneMsg" class="done-msg" role="status" hidden></p>
       <ul class="legend">
         <li><i class="sw sw-true"></i>True robot and path</li>
         <li><i class="sw sw-est"></i>Filter estimate</li>
