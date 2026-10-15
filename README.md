@@ -8,7 +8,7 @@ Group project of three (Intelligent Robotics, University of Birmingham). Ramy Me
 
 **Live demo: [fastslam-demo-production.up.railway.app](https://fastslam-demo-production.up.railway.app)** (runs in the browser, no install)
 
-[![The browser demo mid-run: estimated map, true and estimated trails, frontier cells and the planned path](docs/demo.png)](https://fastslam-demo-production.up.railway.app)
+[![The browser demo after a run: estimated map, true and estimated trails, and the Done summary with coverage, time and final pose error](docs/demo.png)](https://fastslam-demo-production.up.railway.app)
 
 ## How the SLAM works
 
