@@ -51,8 +51,8 @@ class ParticleFilterSLAM:
         Main SLAM loop:
         1. Motion update
         2. Measurement update
-        3. Normalize + Resample
-        4. Choose best pose
+        3. Normalize + choose best pose
+        4. Resample
         5. Update global map
         """
         
@@ -75,12 +75,14 @@ class ParticleFilterSLAM:
         for p in self.particles.particles:
             p.weight = self._compute_likelihood(p, scan, ranges, beam_indices, prob_map)
 
-        # 3. Normalize + Resample
+        # 3. Normalize, then choose the mapping pose (best particle) while the
+        #    weights still mean something. After resampling they are uniform
+        #    and argmax would just return a jittered copy at index 0.
         self.particles.normalize_weights()
-        self._maybe_resample()
-
-        # 4. Choose mapping pose (best particle)
         best_pose = self.best_pose()
+
+        # 4. Resample
+        self._maybe_resample()
 
         # 5. Update global map using ONLY this pose
         update_map(
