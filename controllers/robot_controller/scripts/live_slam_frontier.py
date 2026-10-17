@@ -13,7 +13,7 @@ from robots.robot import MyRobot, Waypoint
 from slam.fastslam import ParticleFilterSLAM as FastSLAM, FastSLAMConfig
 from slam.occupancy import OccupancyGrid, GridSpec, LaserScan
 from slam.visualize import plot_map
-from models.motion import sample_motion_simple
+from models.motion import sample_motion_diffdrive
 
 # Exploration + control imports
 from control.waypoint_follow import GoToGoal
@@ -46,13 +46,13 @@ class FrontierExplorationSLAM:
         init_pose = np.array([0.0, 0.0, 0.0], dtype=float)
         config = FastSLAMConfig(
             num_particles=50,
-            beam_subsample=3,
+            beam_subsample=2,      # 512-beam Webots LiDAR -> 256 beams scored and mapped (see docs/ACCURACY_INVESTIGATION.md)
             resample_threshold_ratio=0.5,
         )
         self.slam = FastSLAM(
             grid=self.grid,
             init_pose=init_pose,
-            motion_model=sample_motion_simple,
+            motion_model=sample_motion_diffdrive,
             config=config,
         )
 

@@ -120,3 +120,55 @@ def compute_motion_odometry(
     theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
     
     return np.array([x_new, y_new, theta_new], dtype=float)
+
+
+def sample_motion_diffdrive(
+    pose: Pose,
+    control: Control,
+    dt: float,
+    rng: Optional[np.random.Generator] = None,
+    alphas: Tuple[float, float, float, float] = (0.05, 0.01, 0.10, 0.05),
+    floor: Tuple[float, float] = (0.005, 0.01),
+    p_slip: float = 0.2,
+    axle_length: float = 0.45,
+) -> Pose:
+    """Differential-drive velocity model with motion-proportional noise.
+
+    Follows the alpha parameterisation of Thrun et al. (Probabilistic Robotics,
+    table 5.3): the spread grows with how fast the robot moves and turns,
+    instead of sample_motion_simple's fixed 0.02 m/s / 0.05 rad/s added at every
+    step whatever the motion.
+
+        sigma_v = a1*|v| + a2*|w| + floor_v
+        sigma_w = a3*|v| + a4*|w| + floor_w
+
+    p_slip: chance per particle per step that the wheels slip or the robot is
+    blocked. Half of those draws are a full stall (no translation: a robot
+    pushed into a wall while the encoders still count), the other half keep a
+    random fraction of the encoder distance. This keeps a few particles on the
+    "did not move" hypothesis every step, so a lineage can follow a stall that
+    lasts many steps; the scan then picks those particles out. Without it the
+    filter needed large roughening after every resample to survive collisions.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+    x, y, theta = pose
+    v_l, v_r = control
+    v = (v_l + v_r) / 2.0
+    w = (v_r - v_l) / axle_length
+    a1, a2, a3, a4 = alphas
+    v_n = v + rng.normal(0.0, a1 * abs(v) + a2 * abs(w) + floor[0])
+    w_n = w + rng.normal(0.0, a3 * abs(v) + a4 * abs(w) + floor[1])
+    if p_slip > 0 and rng.random() < p_slip:
+        v_n *= 0.0 if rng.random() < 0.5 else rng.random()
+    if abs(w_n) < 1e-6:
+        x_new = x + v_n * dt * np.cos(theta)
+        y_new = y + v_n * dt * np.sin(theta)
+        theta_new = theta
+    else:
+        radius = v_n / w_n
+        x_new = x + radius * (np.sin(theta + w_n * dt) - np.sin(theta))
+        y_new = y - radius * (np.cos(theta + w_n * dt) - np.cos(theta))
+        theta_new = theta + w_n * dt
+    theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
+    return np.array([x_new, y_new, theta_new], dtype=float)

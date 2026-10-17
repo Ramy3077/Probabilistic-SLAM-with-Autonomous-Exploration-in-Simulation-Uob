@@ -78,9 +78,11 @@ def test_full_slam_loop():
     control_input = (0.5, 0.1) # Drive 0.5 m/s, turn 0.1 rad/s
     dt = 0.5                   
 
+    max_occupied = 0
     for step in range(1, 11):
 
         estimated_pose = slam.step(control=control_input, dt=dt, scan=scan)
+        max_occupied = max(max_occupied, int(np.sum(grid.probabilities() > 0.6)))
         
         x, y, theta = estimated_pose
         print(f"Step {step}: Pose X={x:.3f}, Y={y:.3f}, Theta={theta:.3f}")
@@ -94,12 +96,15 @@ def test_full_slam_loop():
     
     assert 2.0 < dist_traveled < 3.0, "Robot barely moved or teleported"
 
-    map_probs = grid.probabilities()
-    occupied_count = np.sum(map_probs > 0.6) 
-    
-    print(f"Occupied Grid Cells: {occupied_count}")
-    
+    # The mock scan is identical every step, so its "wall" moves with the
+    # robot. With the standard log-odds update later scans correctly carve the
+    # old wall cells free again, so check that walls were mapped at some point
+    # and that free space was carved.
+    occupied_count = max_occupied
+    print(f"Occupied Grid Cells (max over run): {occupied_count}")
+
     assert occupied_count > 0, "Map is still empty"
+    assert np.sum(grid.probabilities() < 0.4) > 0, "No free space carved"
 
     print("Test Complete")
 

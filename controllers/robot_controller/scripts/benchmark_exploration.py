@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from robots.robot import MyRobot, Waypoint
 from slam.fastslam import ParticleFilterSLAM as FastSLAM, FastSLAMConfig
 from slam.occupancy import OccupancyGrid, GridSpec, LaserScan
-from models.motion import sample_motion_simple
+from models.motion import sample_motion_diffdrive
 from eval.metrics import coverage_percent, entropy_proxy
 from eval.logger import CsvLogger
 
@@ -45,8 +45,8 @@ class BenchmarkRunner:
         
         # --- SLAM Setup ---
         init_pose = np.array([0.0, 0.0, 0.0], dtype=float)
-        config = FastSLAMConfig(num_particles=50, beam_subsample=3, resample_threshold_ratio=0.5)
-        self.slam = FastSLAM(self.grid, init_pose, sample_motion_simple, config)
+        config = FastSLAMConfig(num_particles=50, beam_subsample=2, resample_threshold_ratio=0.5)
+        self.slam = FastSLAM(self.grid, init_pose, sample_motion_diffdrive, config)
         
         # --- Logging ---
         timestamp = time.strftime("%Y%m%d-%H%M%S")

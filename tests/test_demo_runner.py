@@ -11,7 +11,7 @@ MAP = Path(__file__).resolve().parent.parent / "demo" / "maps" / "rooms.json"
 
 def test_demo_builds_a_map_and_tracks_pose():
     runner.silence_prints()
-    np.random.seed(0)  # resampling jitter uses the global RNG
+    np.random.seed(0)
     demo = runner.Demo(json.loads(MAP.read_text()), num_particles=20, noise=1.0, seed=0)
     for _ in range(150):
         demo.step()

@@ -7,7 +7,7 @@ algorithmic piece is imported from the project unchanged:
 
     slam.fastslam      ParticleFilterSLAM (particle filter + occupancy map)
     slam.occupancy     OccupancyGrid, LaserScan, inverse sensor model
-    models.motion      sample_motion_simple (odometry motion model)
+    models.motion      sample_motion_diffdrive (odometry motion model)
     explore.frontiers  detect_frontiers, cluster_frontiers
     explore.planner    choose_frontier
     control.*          AStarPlanner, simplify_path, GoToGoal
@@ -22,7 +22,7 @@ from control.path_planner import AStarPlanner, simplify_path
 from control.waypoint_follow import GoToGoal
 from explore.frontiers import cluster_frontiers, detect_frontiers
 from explore.planner import choose_frontier
-from models.motion import sample_motion_simple
+from models.motion import sample_motion_diffdrive
 from slam.fastslam import FastSLAMConfig, ParticleFilterSLAM
 from slam.occupancy import GridSpec, LaserScan, OccupancyGrid
 
@@ -86,8 +86,8 @@ class Demo:
         self.slam = ParticleFilterSLAM(
             grid=self.grid,
             init_pose=self.world.start.copy(),
-            motion_model=sample_motion_simple,
-            config=FastSLAMConfig(num_particles=num_particles, beam_subsample=3, resample_threshold_ratio=0.5),
+            motion_model=sample_motion_diffdrive,
+            config=FastSLAMConfig(num_particles=num_particles, beam_subsample=1, resample_threshold_ratio=0.5),
             rng=self.rng,
         )
         self.origin_xy = (spec.origin_x, spec.origin_y)

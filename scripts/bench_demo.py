@@ -35,7 +35,7 @@ def run_one(args):
     import runner
 
     runner.silence_prints()
-    np.random.seed(seed)  # resampling jitter uses NumPy's global RNG
+    np.random.seed(seed)  # only needed to reproduce runs of older checkouts
     spec = json.loads((ROOT / "demo" / "maps" / "rooms.json").read_text())
     demo = runner.Demo(spec, num_particles=particles, noise=noise, seed=seed)
     limit = int(MAX_SIM_SECONDS / runner.DT)

@@ -146,6 +146,33 @@ class OccupancyGrid:
         
 # --- Helper functions ---
 
+_OFFSET_CACHE: dict = {}
+
+
+def distance_field(occupied: np.ndarray, resolution: float, max_dist: float) -> np.ndarray:
+    """Euclidean distance (m) from every cell to the nearest occupied cell,
+    clipped at max_dist. Pure NumPy (runs in the Pyodide demo too): takes the
+    minimum over shifted copies of the occupied mask for every offset inside
+    max_dist, so cost is O(cells * offsets) with ~110 offsets at 0.3 m / 5 cm."""
+    r = int(np.ceil(max_dist / resolution))
+    key = (r, resolution)
+    if key not in _OFFSET_CACHE:
+        di, dj = np.mgrid[-r:r + 1, -r:r + 1]
+        d = np.hypot(di, dj) * resolution
+        keep = d <= max_dist
+        _OFFSET_CACHE[key] = (di[keep], dj[keep], d[keep])
+    dis, djs, ds = _OFFSET_CACHE[key]
+    H, W = occupied.shape
+    pad = np.pad(occupied, r)
+    out = np.full((H, W), max_dist, dtype=float)
+    for di, dj, d in zip(dis, djs, ds):
+        if d >= max_dist:
+            continue
+        shifted = pad[r + di:r + di + H, r + dj:r + dj + W]
+        np.minimum(out, np.where(shifted, d, max_dist), out=out)
+    return out
+
+
 def bresenham_line(x0, y0, x1, y1):
     """
     Bresenham's line algorithm from toolbuddy/2D-Grid-SLAM.
@@ -184,6 +211,8 @@ def update_map(
     scan: LaserScan,
     beam_subsample: int = 1,
     apply_free_and_occ: bool = True,
+    sticky_walls: bool = True,
+    wall_cells: int = 2,
 ) -> None:
     """
     Updates the map using toolbuddy's "Bresenham + Tip Thickening" logic.
@@ -207,8 +236,19 @@ def update_map(
     # Pre-calculate beam angles
     angles = th_r + (scan.angle_min + np.arange(len(ranges)) * scan.angle_inc)
     
+    # Cells hit by this scan. A neighbouring beam's ray must not carve them
+    # free in the same update (at grazing angles and long range adjacent
+    # beams pass through each other's endpoint cells). Only matters with
+    # sticky_walls=False, which otherwise relies on later scans to fix it.
+    step_k = max(1, beam_subsample)
+    hits = set()
+    for k in range(0, len(ranges), step_k):
+        r = ranges[k]
+        if np.isfinite(r) and scan.range_min <= r <= scan.range_max:
+            hits.add(grid.world_to_grid(x_r + r * np.cos(angles[k]), y_r + r * np.sin(angles[k])))
+
     # Iterate through beams
-    for k in range(0, len(ranges), max(1, beam_subsample)):
+    for k in range(0, len(ranges), step_k):
         r = ranges[k]
         
         # Skip invalid ranges
@@ -237,13 +277,19 @@ def update_map(
             if not grid.in_bounds(i, j):
                 continue
                 
-            # Logic: Last 2 pixels are Occupied, rest are Free
-            if idx < len(rec) - 2:
+            # Logic: the last `wall_cells` pixels are Occupied, rest are Free.
+            # (2 = toolbuddy's "thick wall"; 1 = standard inverse sensor model)
+            if idx < len(rec) - wall_cells:
                 change = lo_free
                 
                 # STICKY WALLS: Do not overwrite occupied cells with free space
-                # If cell is already occupied (log_odds > 0), skip free update
-                if grid.log_odds[i, j] > 0.0:
+                # If cell is already occupied (log_odds > 0), skip free update.
+                # With sticky_walls=False this is the standard log-odds update
+                # (Thrun et al. table 9.1): a cell marked occupied from a wrong
+                # pose can be carved out again by later beams passing through.
+                if sticky_walls and grid.log_odds[i, j] > 0.0:
+                    continue
+                if (i, j) in hits:
                     continue
             else:
                 change = lo_occ
